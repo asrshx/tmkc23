@@ -112,7 +112,6 @@ GLOBAL_STYLE = """
     p.success {color: green; font-weight: bold;}
 </style>
 """
-"""
 
 # ---------------- LOGIN PAGE ----------------
 LOGIN_PAGE = GLOBAL_STYLE + """
