@@ -200,7 +200,7 @@ def post_uid_finder():
             try:
                 resp = requests.get(fb_url)
                 text = resp.text
-                patterns = [r"/posts/(\d+)r"story_fbid=(\d+)"r"""facebook\.com.*?/photos/\d+/(\d+)"]
+                patterns = [ r"/posts/(\\d+)", r"story_fbid=(\\d+)", r"facebook\\.com.*?/photos/\\d+/(\\d+)"]
                 for pat in patterns:
                     match = re.search(pat, text)
                     if match:
