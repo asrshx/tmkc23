@@ -100,7 +100,7 @@ HTML_PAGE = """
 </html>
 """
 
-# ---- WELCOME PANEL WITH BUTTONS ----
+# ---- WELCOME PANEL WITH IMAGE + BUTTONS ----
 WELCOME_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -127,13 +127,18 @@ WELCOME_PAGE = """
             box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
             text-align: center;
         }
+        img {
+            width: 100%;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
         h1 {
             background: linear-gradient(to right, #ff0066, #ff66cc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .btn {
             display: block;
@@ -152,19 +157,24 @@ WELCOME_PAGE = """
         .btn:hover {
             transform: scale(1.05);
         }
-        a {
+        a.logout {
+            display: block;
+            margin-top: 15px;
+            color: #ff0066;
             text-decoration: none;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <img src="https://picsum.photos/400/300" alt="HENRY-X">
         <h1>Welcome, {{ user }}</h1>
         <form>
             <button class="btn" formaction="#">THREAD</button>
             <button class="btn" formaction="#">HENRY-X</button>
         </form>
-        <a href="{{ url_for('logout') }}">Logout</a>
+        <a class="logout" href="{{ url_for('logout') }}">Logout</a>
     </div>
 </body>
 </html>
