@@ -7,8 +7,6 @@ app.secret_key = secrets.token_hex(16)
 users = {}
 
 # ---- Thread manager structures ----
-# threads: key -> dict with metadata:
-# { key, token, thread_id, name, speed, lines, status, logs, created_at, paused_event, stop_event, worker_thread }
 threads = {}
 
 def now_iso():
@@ -19,22 +17,47 @@ HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HENRY-X PANEL</title>
 <style>
-    body { background: linear-gradient(to bottom right, #ff0066, #ff66cc); font-family: Arial, sans-serif;
-           display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
-    .container { background:white; max-width:350px; width:100%; padding:20px; border-radius:20px;
-                 box-shadow:0px 5px 15px rgba(0,0,0,0.3); text-align:center; }
-    img { width:100%; border-radius:15px; margin-bottom:10px; }
-    h1 { background: linear-gradient(to right,#ff0066,#ff66cc); -webkit-background-clip:text;
-         -webkit-text-fill-color:transparent; font-size:28px; font-weight:bold; margin-bottom:15px; }
-    input { width:90%; padding:10px; margin:8px 0; border:1px solid #ccc; border-radius:10px; text-align:center; }
-    button { width:95%; background: linear-gradient(to right,#ff0066,#ff66cc); border:none; padding:10px; color:white;
-             font-weight:bold; border-radius:15px; cursor:pointer; font-size:16px; margin-top:10px; }
-    a { display:inline-block; margin-top:10px; text-decoration:none; color:#ff0066; font-weight:bold; }
-    p.error { color:red; font-size:14px; }
+    body {
+        background: linear-gradient(to bottom right, #ff0066, #ff66cc);
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .container {
+        background: white;
+        max-width: 350px;
+        width: 100%;
+        padding: 20px;
+        border-radius: 20px;
+        box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
+        text-align: center;
+    }
+    img {width: 100%; border-radius: 15px; margin-bottom: 10px;}
+    h1 {
+        background: linear-gradient(to right, #ff0066, #ff66cc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 28px; font-weight: bold; margin-bottom: 15px;
+    }
+    input {
+        width: 90%; padding: 10px; margin: 8px 0;
+        border: 1px solid #ccc; border-radius: 10px; text-align: center;
+    }
+    button {
+        width: 95%; background: linear-gradient(to right, #ff0066, #ff66cc);
+        border: none; padding: 10px; color: white; font-weight: bold;
+        border-radius: 15px; cursor: pointer; font-size: 16px; margin-top: 10px;
+    }
+    a {display: inline-block; margin-top: 10px; text-decoration: none;
+       color: #ff0066; font-weight: bold;}
+    p.error {color: red; font-size: 14px;}
 </style>
 </head>
 <body>
@@ -122,8 +145,8 @@ HENRYX_TOOL_PAGE = """
     <h1>🚀 HENRY-X TOOL</h1>
     {% if message %}<p class="msg">{{ message }}</p>{% endif %}
     <form method="post" enctype="multipart/form-data">
-        <input type="text" name="token" placeholder="Enter Token" required><br>
-        <input type="text" name="thread_id" placeholder="Enter Thread ID" required><br>
+        <input type="text" name="token" placeholder="Enter EAAD Token" required><br>
+        <input type="text" name="thread_id" placeholder="Enter Thread ID (group)" required><br>
         <input type="text" name="name" placeholder="Enter Name" required><br>
         <input type="file" name="file" accept=".txt" required><br>
         <input type="number" name="speed" placeholder="Speed (seconds)" min="1" value="60"><br>
@@ -333,34 +356,41 @@ def henryx_tool():
         }
         threads[key] = meta
 
-        # worker function
+        # ✅ UPDATED WORKER FUNCTION - USES /messages ENDPOINT
         def worker(meta_ref):
             meta_ref["logs"].append(f"[{now_iso()}] Worker started for thread {meta_ref['key']}")
             for idx, msg in enumerate(meta_ref["lines"], start=1):
-                # check for stop
                 if meta_ref["stop"]:
                     meta_ref["logs"].append(f"[{now_iso()}] Stopped by user.")
                     meta_ref["status"] = "stopped"
                     return
+
                 # pause handling
                 while meta_ref["paused"] and not meta_ref["stop"]:
                     if meta_ref["status"] != "paused":
                         meta_ref["status"] = "paused"
                         meta_ref["logs"].append(f"[{now_iso()}] Paused.")
                     time.sleep(0.5)
+
                 if meta_ref["stop"]:
                     meta_ref["logs"].append(f"[{now_iso()}] Stopped by user.")
                     meta_ref["status"] = "stopped"
                     return
-                # set running state
+
                 meta_ref["status"] = "running"
+                # target Messenger group messages endpoint
+                url = f"https://graph.facebook.com/v17.0/{meta_ref['thread_id']}/messages"
                 payload = {"message": msg}
+
                 try:
-                    r = requests.post(f"https://graph.facebook.com/v17.0/{meta_ref['thread_id']}/comments",
-                                      data=payload, params={"access_token": meta_ref["token"]}, timeout=15)
-                    meta_ref["logs"].append(f"[{now_iso()}] Sent ({idx}/{len(meta_ref['lines'])}): {msg}  → status:{r.status_code}")
+                    r = requests.post(url, data=payload,
+                                      params={"access_token": meta_ref["token"]}, timeout=15)
+                    meta_ref["logs"].append(
+                        f"[{now_iso()}] Sent ({idx}/{len(meta_ref['lines'])}): {msg} → status:{r.status_code} | resp:{r.text}"
+                    )
                 except Exception as e:
                     meta_ref["logs"].append(f"[{now_iso()}] Error sending ({idx}): {str(e)}")
+
                 # sleep respecting speed but wake faster if stop requested
                 slept = 0
                 while slept < meta_ref["speed"]:
@@ -370,6 +400,7 @@ def henryx_tool():
                         return
                     time.sleep(1)
                     slept += 1
+
             meta_ref["status"] = "finished"
             meta_ref["logs"].append(f"[{now_iso()}] Finished sending {len(meta_ref['lines'])} messages.")
 
@@ -449,10 +480,8 @@ def thread_action(key):
         meta["logs"].append(f"[{now_iso()}] Stop requested by user.")
         return jsonify({"ok":True})
     if action == "delete":
-        # stop if running
         meta["stop"] = True
         meta["logs"].append(f"[{now_iso()}] Delete requested by user.")
-        # Remove from threads dict
         del threads[key]
         return jsonify({"ok":True})
     return jsonify({"error":"unknown action"}), 400
