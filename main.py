@@ -1,178 +1,190 @@
-from flask import Flask, render_template_string
-import os, time
+from flask import Flask, render_template_string, request, redirect, url_for, session
+import secrets
 
 app = Flask(__name__)
-app.debug = True
+app.secret_key = secrets.token_hex(16)
 
-start_time = time.time()  # Server start time
+# ---- Simple Database (username: password) ----
+users = {}
 
-html_content = '''
+# ---- HTML Template ----
+HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>(HENRY-X) 3.0</title>
+    <title>HENRY-X PANEL</title>
     <style>
         body {
+            background: linear-gradient(to bottom right, #ff0066, #ff66cc);
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: radial-gradient(circle at 20% 20%, #ff00ff, #6a11cb, #000);
-            overflow-x: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            position: relative;
+            height: 100vh;
+            margin: 0;
         }
-
-        body::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: url('https://i.ibb.co/vHDpz6C/particles.png');
-            background-size: cover;
-            opacity: 0.15;
-            animation: moveBG 30s linear infinite;
-            z-index: 0;
-        }
-
-        @keyframes moveBG {
-            from {background-position: 0 0;}
-            to {background-position: 1000px 1000px;}
-        }
-
         .container {
-            z-index: 2;
-            max-width: 900px;
-            width: 92%;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 20px;
-            padding: 30px;
-            backdrop-filter: blur(15px);
-            box-shadow: 0 0 40px rgba(255, 0, 255, 0.3);
-            text-align: center;
-            animation: slideIn 1s ease forwards;
-            transform: translateY(40px);
-            opacity: 0;
-        }
-
-        @keyframes slideIn {
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        h1 {
-            font-size: 42px;
-            text-shadow: 0 0 15px #ff00ff, 0 0 30px #ffcc00;
-            margin-bottom: 25px;
-        }
-
-        .hero-img {
+            background: white;
+            max-width: 350px;
             width: 100%;
+            padding: 20px;
             border-radius: 20px;
-            margin-bottom: 25px;
-            border: 2px solid rgba(255,255,255,0.3);
-            box-shadow: 0 0 30px rgba(255,255,255,0.2);
-            transition: transform 0.5s ease, box-shadow 0.5s ease;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
         }
-
-        .hero-img:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 50px rgba(255, 0, 255, 0.6);
+        img {
+            width: 100%;
+            border-radius: 15px;
+            margin-bottom: 10px;
         }
-
-        .download-btn {
-            display: inline-block;
-            padding: 15px 35px;
-            margin-top: 15px;
-            font-size: 22px;
+        h1 {
+            background: linear-gradient(to right, #ff0066, #ff66cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 28px;
             font-weight: bold;
+            margin-bottom: 15px;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            text-align: center;
+        }
+        button {
+            width: 95%;
+            background: linear-gradient(to right, #ff0066, #ff66cc);
+            border: none;
+            padding: 10px;
             color: white;
-            background: linear-gradient(90deg, #ff00ff, #ffcc00, #ff00ff);
-            background-size: 300%;
-            border-radius: 50px;
-            text-decoration: none;
-            text-transform: uppercase;
-            box-shadow: 0 0 30px rgba(255,0,255,0.6);
-            animation: glowMove 3s infinite linear;
-            transition: transform 0.3s ease;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
         }
-
-        @keyframes glowMove {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .download-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 50px rgba(255, 204, 0, 1);
-        }
-
-        /* uptime box */
-        .uptime-box {
-            margin-top: 25px;
-            font-size: 18px;
-            color: #ffcc00;
-            padding: 10px 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.05);
-            box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
-            display: inline-block;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 10px rgba(255, 204, 0, 0.3); }
-            50% { box-shadow: 0 0 30px rgba(255, 204, 0, 0.8); }
-            100% { box-shadow: 0 0 10px rgba(255, 204, 0, 0.3); }
-        }
-
-        footer {
-            margin-top: 20px;
-            color: #ffcc00;
+        p.error {
+            color: red;
             font-size: 14px;
-            opacity: 0.8;
+        }
+        a {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #ff0066;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>HENRY-X 3.0</h1>
-        <img src="https://i.imgur.com/iJ8mZjV.jpeg" class="hero-img">
-        <a class="download-btn" href="https://www.mediafire.com/file/n19efi58354cukh/(HENRY-X).apk/file">⬇ Click to Download</a>
-        <div class="uptime-box"> Server Uptime: <span id="uptime">0s</span></div>
-        <footer> Powered by Henry-X • 2025-2026</footer>
+        <img src="https://picsum.photos/400/300" alt="HENRY-X">
+        <h1>HENRY-X</h1>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="post">
+            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="password" name="password" placeholder="Password" required><br>
+            <button type="submit">{{ 'Continue' if page=='login' else 'Create Account' }}</button>
+        </form>
+        {% if page=='login' %}
+            <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Already have account? Login</a>
+        {% endif %}
     </div>
-
-    <script>
-        let startTime = {{ start }};
-        function updateUptime() {
-            let now = Math.floor(Date.now() / 1000);
-            let diff = now - startTime;
-            let hrs = Math.floor(diff / 3600);
-            let mins = Math.floor((diff % 3600) / 60);
-            let secs = diff % 60;
-            document.getElementById("uptime").innerText =
-                (hrs > 0 ? hrs + "h " : "") +
-                (mins > 0 ? mins + "m " : "") +
-                secs + "s";
-        }
-        setInterval(updateUptime, 1000);
-        updateUptime();
-    </script>
 </body>
 </html>
-'''
+"""
 
-@app.route('/')
+WELCOME_PAGE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome HENRY-X</title>
+    <style>
+        body {
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+        .welcome-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-size: 30px;
+        }
+        a {
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-box">
+        <h1>Welcome, {{ user }} 🎉</h1>
+        <p>You are logged in to <b>HENRY-X Panel</b>.</p>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</body>
+</html>
+"""
+
+@app.route("/", methods=["GET"])
 def home():
-    return render_template_string(html_content, start=int(start_time))
+    return redirect(url_for("login"))
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        uname = request.form["username"]
+        pwd = request.form["password"]
+        if uname in users and users[uname] == pwd:
+            session["user"] = uname
+            return redirect(url_for("welcome"))
+        else:
+            error = "Invalid username or password."
+    return render_template_string(HTML_PAGE, error=error, page="login")
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    error = None
+    if request.method == "POST":
+        uname = request.form["username"]
+        pwd = request.form["password"]
+        if uname in users:
+            error = "Username already exists!"
+        else:
+            users[uname] = pwd
+            session["user"] = uname
+            return redirect(url_for("welcome"))
+    return render_template_string(HTML_PAGE, error=error, page="signup")
+
+@app.route("/welcome")
+def welcome():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    return render_template_string(WELCOME_PAGE, user=session["user"])
+
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect(url_for("login"))
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
