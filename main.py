@@ -7,7 +7,7 @@ app.secret_key = secrets.token_hex(16)
 users = {}
 tasks = {}
 
-# ---------- GLOBAL STYLE 2026 LOOK ----------
+# Sirf STYLE update kiya, backend code same rakha hai
 GLOBAL_STYLE = """
 <style>
     html, body {
@@ -25,68 +25,73 @@ GLOBAL_STYLE = """
     }
     .card {
         background: rgba(255,255,255,0.92);
-        backdrop-filter: blur(12px);
+        backdrop-filter: blur(14px);
         border-radius: 25px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-        width: 100%;
-        height: 95%;
-        max-width: 800px;
-        max-height: 95%;
+        width: 90%;
+        max-width: 850px;
+        min-height: 90%;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        padding: 25px;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 30px 20px;
         margin: 10px;
         overflow-y: auto;
     }
     img.hero {
         width: 100%;
-        border-radius: 20px;
-        margin-bottom: 20px;
-        max-height: 250px;
+        border-radius: 18px;
+        max-height: 220px;
         object-fit: cover;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
     h1 {
-        font-size: 32px;
+        font-size: 2rem;
         font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
         background: linear-gradient(to right, #ff0066, #ff66cc);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 15px;
-        text-align: center;
     }
     input, select {
-        width: 95%;
-        padding: 15px;
+        width: 100%;
+        max-width: 500px;
+        padding: 14px;
         margin: 12px auto;
-        display: block;
         border: 1px solid #ddd;
         border-radius: 12px;
-        text-align: center;
         font-size: 16px;
+        display: block;
     }
     button, .btn {
         display: block;
-        width: 95%;
+        width: 100%;
+        max-width: 500px;
         background: linear-gradient(to right, #ff0066, #ff66cc);
         color: white;
         border: none;
-        padding: 15px;
-        font-size: 18px;
+        padding: 14px;
+        font-size: 17px;
         font-weight: bold;
-        border-radius: 18px;
+        border-radius: 14px;
         margin: 12px auto;
         cursor: pointer;
-        transition: transform 0.2s ease;
+        transition: all 0.2s ease-in-out;
     }
-    button:hover, .btn:hover {transform: scale(1.05);}
+    button:hover, .btn:hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 5px 15px rgba(255,0,102,0.3);
+    }
     a.link {
-        display: block;
         margin-top: 10px;
         color: #ff0066;
         font-weight: bold;
         text-decoration: none;
         text-align: center;
+        display: block;
     }
     .task {
         background: #fff;
@@ -95,11 +100,18 @@ GLOBAL_STYLE = """
         margin: 10px 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         text-align: left;
+        width: 100%;
+        max-width: 500px;
     }
-    .task button {width: auto; display: inline-block; margin: 5px;}
+    .task button {
+        width: auto;
+        display: inline-block;
+        margin: 5px;
+    }
     p.error {color: red; font-weight: bold;}
     p.success {color: green; font-weight: bold;}
 </style>
+"""
 """
 
 # ---------------- LOGIN PAGE ----------------
