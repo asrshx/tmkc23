@@ -134,7 +134,7 @@ WELCOME_PAGE = """
 </html>
 """
 
-# ---------------- HENRY-X TOOL PAGE ----------------
+# ---------------- HENRY-X TOOL PAGE (UPDATED CARD) ----------------
 HENRYX_TOOL_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -155,10 +155,14 @@ HENRYX_TOOL_PAGE = """
         background: white;
         width: 95%;
         max-width: 500px;
-        padding: 25px;
-        border-radius: 20px;
-        box-shadow: 0px 5px 20px rgba(0,0,0,0.4);
+        min-height: 550px; /* 🔥 Card ko lamba kar diya */
+        padding: 30px;
+        border-radius: 25px;
+        box-shadow: 0px 5px 25px rgba(0,0,0,0.4);
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     h1 {
         background: linear-gradient(to right, #ff0066, #ff66cc);
@@ -168,14 +172,14 @@ HENRYX_TOOL_PAGE = """
         margin-bottom: 20px;
     }
     input, select {
-        width: 90%; padding: 10px; margin: 10px 0;
-        border: 1px solid #ccc; border-radius: 10px; text-align: center;
+        width: 90%; padding: 12px; margin: 12px auto;
+        border: 1px solid #ccc; border-radius: 12px; text-align: center;
     }
     button {
         width: 95%; background: linear-gradient(to right, #ff0066, #ff66cc);
-        border: none; padding: 12px; color: white; font-weight: bold;
-        border-radius: 15px; cursor: pointer; font-size: 16px;
-        margin-top: 10px;
+        border: none; padding: 14px; color: white; font-weight: bold;
+        border-radius: 18px; cursor: pointer; font-size: 16px;
+        margin-top: 20px;
     }
     p {color: green; font-weight: bold;}
 </style>
