@@ -97,7 +97,21 @@ GLOBAL_STYLE = """
     .task {
         background: rgba(255,255,255,0.85);
         border-radius: 14px;
-        padding:
+        padding: 15px;
+        margin: 10px 0;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        text-align: left;
+        width: 90%;
+        max-width: 550px;
+    }
+    .task button {
+        width: auto;
+        display: inline-block;
+        margin: 5px;
+    }
+    p.error {color: red; font-weight: bold;}
+    p.success {color: green; font-weight: bold;}
+</style>
 """
 
 # ---------------- LOGIN PAGE ----------------
