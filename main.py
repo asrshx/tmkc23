@@ -6,7 +6,7 @@ app.secret_key = secrets.token_hex(16)
 
 users = {}
 tasks = {}
-#---HTML-----
+
 GLOBAL_STYLE = """
 <style>
     html, body {
