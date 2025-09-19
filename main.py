@@ -62,7 +62,7 @@ HTML_PAGE = """
 </head>
 <body>
 <div class="container">
-    <img src="https://picsum.photos/400/300" alt="HENRY-X">
+    <img src="https://i.imgur.com/s5Orhvv.jpeg" alt="HENRY-X">
     <h1>HENRY-X</h1>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
     <form method="post">
@@ -104,7 +104,7 @@ WELCOME_PAGE = """
 </head>
 <body>
 <div class="container">
-    <img src="https://picsum.photos/400/300" alt="HENRY-X">
+    <img src="https://i.imgur.com/yNJ5qRI.jpeg" alt="HENRY-X">
     <h1>Welcome, {{ user }}</h1>
     <form action="{{ url_for('threads_list') }}" method="get" style="margin:0;">
         <button class="btn" type="submit">THREAD</button>
