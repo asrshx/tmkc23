@@ -7,7 +7,7 @@ app.secret_key = secrets.token_hex(16)
 # ---- Simple Database (username: password) ----
 users = {}
 
-# ---- HTML Template ----
+# ---- LOGIN & SIGNUP PAGE ----
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -100,6 +100,7 @@ HTML_PAGE = """
 </html>
 """
 
+# ---- WELCOME PANEL WITH BUTTONS ----
 WELCOME_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -109,35 +110,60 @@ WELCOME_PAGE = """
     <title>Welcome HENRY-X</title>
     <style>
         body {
-            background: linear-gradient(to right, #00c6ff, #0072ff);
+            background: linear-gradient(to bottom right, #ff0066, #ff66cc);
             font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            color: white;
         }
-        .welcome-box {
-            background: rgba(255, 255, 255, 0.1);
+        .container {
+            background: white;
+            max-width: 350px;
+            width: 100%;
             padding: 20px;
-            border-radius: 15px;
+            border-radius: 20px;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
             text-align: center;
-            backdrop-filter: blur(10px);
         }
         h1 {
-            font-size: 30px;
+            background: linear-gradient(to right, #ff0066, #ff66cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .btn {
+            display: block;
+            width: 90%;
+            margin: 10px auto;
+            padding: 12px;
+            border-radius: 15px;
+            border: none;
+            background: linear-gradient(to right, #ff0066, #ff66cc);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
         }
         a {
-            color: white;
-            text-decoration: underline;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
-    <div class="welcome-box">
-        <h1>Welcome, {{ user }} 🎉</h1>
-        <p>You are logged in to <b>HENRY-X Panel</b>.</p>
+    <div class="container">
+        <h1>Welcome, {{ user }}</h1>
+        <form>
+            <button class="btn" formaction="#">THREAD</button>
+            <button class="btn" formaction="#">HENRY-X</button>
+        </form>
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 </body>
