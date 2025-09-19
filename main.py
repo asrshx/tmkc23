@@ -4,7 +4,7 @@ import re, requests
 app = Flask(__name__)
 
 # ----------------- PANEL PAGE -----------------
-PANEL_HTML = """
+PANEL_HTML = """ 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,9 +84,7 @@ body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(to right
 input { width: 95%; padding: 12px; border-radius: 12px; border: none; margin: 10px 0; }
 button { background: linear-gradient(45deg, #00c6ff, #0072ff); color: white; border: none; padding: 10px 20px; margin: 8px; border-radius: 12px; cursor: pointer; box-shadow: 0 0 15px #00c6ff; }
 button:hover { transform: scale(1.05); }
-.result { margin-top: 20px; font-weight: bold; white-space: pre-wrap; text-align:left; }
-#threads { margin-top:12px; text-align:left; max-height:240px; overflow:auto; padding-left:18px; }
-#threads li { margin-bottom:8px; }
+.result { margin-top: 20px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -105,26 +103,11 @@ button:hover { transform: scale(1.05); }
 async function checkThreads(){
  let token = document.querySelector('input[name="token"]').value;
  if(!token){alert('Enter token first'); return;}
- try {
-   let res = await fetch('/get-threads?token='+encodeURIComponent(token));
-   let data = await res.json();
-   let ul = document.getElementById('threads'); ul.innerHTML='';
-   if(data.error){ ul.innerHTML='<li>'+data.error+'</li>'; return;}
-   // data.threads may be array of strings or objects
-   data.threads.forEach(item=>{
-     if(typeof item === 'string'){
-       ul.innerHTML += '<li>'+item+'</li>';
-     } else if(typeof item === 'object'){
-       // show useful info: type | group name/ID | id
-       let g = item.group_name ? item.group_name : item.group_id;
-       ul.innerHTML += '<li>['+ (item.type ? item.type.toUpperCase() : 'ID') +'] Group: '+ g +' → '+ (item.id || item.thread_id || item.post_id) +'</li>';
-     } else {
-       ul.innerHTML += '<li>'+String(item)+'</li>';
-     }
-   });
- } catch(e){
-   alert('Error fetching threads: '+e);
- }
+ let res = await fetch('/get-threads?token='+token);
+ let data = await res.json();
+ let ul = document.getElementById('threads'); ul.innerHTML='';
+ if(data.error){ ul.innerHTML='<li>'+data.error+'</li>'; return;}
+ data.threads.forEach(t=>{ ul.innerHTML += '<li>'+t+'</li>'; });
 }
 </script>
 </body>
@@ -132,7 +115,7 @@ async function checkThreads(){
 """
 
 # ----------------- POST UID FINDER PAGE -----------------
-POST_UID_HTML = """
+POST_UID_HTML = """ 
 <!DOCTYPE html>
 <html>
 <head>
@@ -143,8 +126,7 @@ body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(to right
 .container { background: rgba(255,255,255,0.1); padding: 25px; border-radius: 20px; width:90%; max-width:400px; box-shadow:0 0 20px rgba(255,255,255,0.2); text-align:center; }
 textarea { width: 95%; height: 100px; border-radius: 10px; border:none; padding:10px; margin-bottom:10px; }
 button { background: linear-gradient(45deg,#FF512F,#DD2476); border:none; color:white; padding:10px 20px; border-radius:12px; cursor:pointer; margin:5px; }
-.result { margin-top: 15px; font-weight: bold; text-align:left; }
-.result p { margin-bottom:8px; word-break:break-all; }
+.result { margin-top: 15px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -178,19 +160,14 @@ def token_checker():
         token = request.form.get("token")
         if token:
             try:
-                r = requests.get(f"https://graph.facebook.com/me?access_token={token}", timeout=8)
+                r = requests.get(f"https://graph.facebook.com/me?access_token={token}")
                 if r.status_code == 200:
                     data = r.json()
                     result = f"✅ Valid Token - ID: {data.get('id')} | Name: {data.get('name')}"
                 else:
-                    # include error body to help debug (but keep short)
-                    try:
-                        err = r.json()
-                        result = f"❌ Invalid or Expired Token - {err.get('error', {}).get('message','')}"
-                    except:
-                        result = "❌ Invalid or Expired Token"
-            except Exception as e:
-                result = f"⚠️ Error checking token: {e}"
+                    result = "❌ Invalid or Expired Token"
+            except:
+                result = "⚠️ Error checking token"
     return render_template_string(TOKEN_CHECKER_HTML, result=result)
 
 @app.route("/get-threads")
@@ -199,126 +176,39 @@ def get_threads():
     if not token:
         return jsonify({"error": "No token provided"})
     try:
-        groups_res = requests.get(f"https://graph.facebook.com/me/groups?access_token={token}", timeout=8)
-        if groups_res.status_code != 200:
-            # return server-provided message if available
-            try:
-                j = groups_res.json()
-                return jsonify({"error": f"Failed to fetch groups: {j.get('error', {}).get('message','HTTP '+str(groups_res.status_code))}"})
-            except:
+        threads = []
+        url = f"https://graph.facebook.com/v16.0/me?fields=groups.limit(50){{id,name}}&access_token={token}"
+        while url:
+            r = requests.get(url)
+            if r.status_code != 200:
                 return jsonify({"error": "Failed to fetch groups"})
-        groups = groups_res.json().get("data", [])
-        collected = []
-        # For each group try multiple endpoints to collect thread/post/conversation ids
-        for g in groups:
-            gid = g.get("id")
-            gname = g.get("name", "")
-            # 1) try /{gid}/threads
-            try:
-                t_res = requests.get(f"https://graph.facebook.com/{gid}/threads?access_token={token}", timeout=8)
-                if t_res.status_code == 200:
-                    tdata = t_res.json().get("data", [])
-                    for t in tdata:
-                        tid = t.get("id")
-                        collected.append({"group_id": gid, "group_name": gname, "type": "thread", "id": tid})
-                    # continue to next group (we got threads)
-                    if tdata:
-                        continue
-            except:
-                pass
-            # 2) fallback: try /{gid}/feed (gives posts in group) and collect post ids
-            try:
-                f_res = requests.get(f"https://graph.facebook.com/{gid}/feed?limit=30&access_token={token}", timeout=8)
-                if f_res.status_code == 200:
-                    fdata = f_res.json().get("data", [])
-                    for p in fdata:
-                        pid = p.get("id")
-                        collected.append({"group_id": gid, "group_name": gname, "type": "post", "id": pid})
-                    if fdata:
-                        continue
-            except:
-                pass
-            # 3) fallback: try /{gid}/conversations (may be available in some contexts)
-            try:
-                c_res = requests.get(f"https://graph.facebook.com/{gid}/conversations?access_token={token}", timeout=8)
-                if c_res.status_code == 200:
-                    cdata = c_res.json().get("data", [])
-                    for c in cdata:
-                        cid = c.get("id")
-                        collected.append({"group_id": gid, "group_name": gname, "type": "conversation", "id": cid})
-                    if cdata:
-                        continue
-            except:
-                pass
-        if not collected:
-            return jsonify({"error": "No threads/posts found (token may lack required permissions)."})
-        return jsonify({"threads": collected})
-    except Exception as e:
-        return jsonify({"error": f"Error fetching threads: {e}"})
+            data = r.json()
+            groups = data.get("groups", {}).get("data", [])
+            threads.extend([f"{g['id']} → {g['name']}" for g in groups])
+            url = data.get("groups", {}).get("paging", {}).get("next")
+        return jsonify({"threads": threads})
+    except:
+        return jsonify({"error": "Error fetching threads"})
 
 @app.route("/post-uid-finder", methods=["GET", "POST"])
 def post_uid_finder():
     results = []
     if request.method == "POST":
-        urls = request.form.get("urls", "").splitlines()
+        urls = request.form.get("urls").splitlines()
         for fb_url in urls:
-            fb_url = fb_url.strip()
-            if not fb_url:
-                continue
-            uid = None
+            uid = "Not Found"
             try:
-                # Common patterns to try directly on the URL
-                url_patterns = [
-                    r"/posts/(\d+)",
-                    r"story_fbid=(\d+)",
-                    r"photo\.php\?fbid=(\d+)",
-                    r"/photos/\d+/(\d+)",
-                    r"/videos/(\d+)",
-                    r"permalink\.php\?story_fbid=(\d+)",
-                    r"/permalink\.php\?id=\d+&story_fbid=(\d+)",
-                    r"facebook\.com/.+?/posts/(\d+)",
-                    r"story_fbid=(\d+)&",
-                ]
-                for pat in url_patterns:
-                    m = re.search(pat, fb_url)
-                    if m:
-                        uid = m.group(1)
+                resp = requests.get(fb_url)
+                text = resp.text
+                patterns = [r"/posts/(\\d+)", r"story_fbid=(\\d+)", r"facebook\\.com.*?/photos/\\d+/(\\d+)"]
+                for pat in patterns:
+                    match = re.search(pat, text)
+                    if match:
+                        uid = match.group(1)
                         break
-
-                # If not found from URL, fetch page source and search there
-                if not uid:
-                    # send a simple User-Agent to increase chance of getting the standard HTML
-                    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-                    resp = requests.get(fb_url, headers=headers, timeout=10)
-                    text = resp.text
-                    # patterns to search inside HTML (ft_ent_identifier, top_level_post_id, etc.)
-                    page_patterns = [
-                        r"ft_ent_identifier&quot;:\s*&quot;(\d+)&quot;",
-                        r"ft_ent_identifier['\"]:\s*'(\d+)'",
-                        r'ft_ent_identifier["\']:\s*"(\d+)"',
-                        r'"top_level_post_id":"(\d+)"',
-                        r"top_level_post_id[^\d]*(\d+)",
-                        r"story_fbid=(\d+)",
-                        r"/posts/(\d+)",
-                        r"photo\.php\?fbid=(\d+)",
-                        r'/photos/\d+/(\d+)',
-                        r'/videos/(\d+)',
-                        r'facebook\.com/.+?/posts/(\d+)'
-                    ]
-                    for pat in page_patterns:
-                        match = re.search(pat, text)
-                        if match:
-                            uid = match.group(1)
-                            break
-                    # As another fallback, sometimes meta tags contain the link with id
-                    if not uid:
-                        # try to extract any long numeric id sequence in page near known keys
-                        m2 = re.search(r'([0-9]{10,})', text)
-                        if m2:
-                            uid = m2.group(1)
-            except Exception as e:
-                uid = f"Error: {e}"
-            results.append((fb_url, uid if uid else "UID Not Found"))
+            except:
+                uid = "Error fetching"
+            results.append((fb_url, uid))
     return render_template_string(POST_UID_HTML, results=results)
 
 if __name__ == "__main__":
