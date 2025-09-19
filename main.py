@@ -6,8 +6,7 @@ app.secret_key = secrets.token_hex(16)
 
 users = {}
 tasks = {}
-
-# Sirf STYLE update kiya, backend code same rakha hai
+#---HTML-----
 GLOBAL_STYLE = """
 <style>
     html, body {
@@ -16,101 +15,89 @@ GLOBAL_STYLE = """
         padding: 0;
     }
     body {
-        background: linear-gradient(135deg, #ff0066, #ff66cc);
+        background: linear-gradient(135deg, #ff0080, #ff66ff);
         font-family: 'Segoe UI', Tahoma, sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100%;
+        padding: 10px;
     }
     .card {
-        background: rgba(255,255,255,0.92);
-        backdrop-filter: blur(14px);
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(18px);
         border-radius: 25px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-        width: 90%;
-        max-width: 850px;
-        min-height: 90%;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        width: 100%;
+        max-width: 900px;
+        min-height: 90vh;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
-        padding: 30px 20px;
-        margin: 10px;
-        overflow-y: auto;
+        padding: 30px 25px;
     }
     img.hero {
-        width: 100%;
-        border-radius: 18px;
-        max-height: 220px;
+        width: 95%;
+        max-height: 260px;
         object-fit: cover;
+        border-radius: 22px;
         margin-bottom: 25px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
     }
     h1 {
-        font-size: 2rem;
-        font-weight: bold;
+        font-size: 2.3rem;
+        font-weight: 900;
         text-align: center;
-        margin-bottom: 20px;
-        background: linear-gradient(to right, #ff0066, #ff66cc);
+        margin-bottom: 25px;
+        letter-spacing: 1px;
+        background: linear-gradient(to right, #ff0080, #ff66ff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 10px rgba(255,0,128,0.3);
     }
     input, select {
-        width: 100%;
-        max-width: 500px;
-        padding: 14px;
+        width: 90%;
+        max-width: 550px;
+        padding: 15px;
         margin: 12px auto;
-        border: 1px solid #ddd;
-        border-radius: 12px;
+        border: 1px solid #ccc;
+        border-radius: 14px;
         font-size: 16px;
-        display: block;
+        background: rgba(255,255,255,0.8);
     }
     button, .btn {
         display: block;
-        width: 100%;
-        max-width: 500px;
-        background: linear-gradient(to right, #ff0066, #ff66cc);
+        width: 90%;
+        max-width: 550px;
+        background: linear-gradient(to right, #ff0080, #ff66ff);
         color: white;
         border: none;
         padding: 14px;
-        font-size: 17px;
+        font-size: 18px;
         font-weight: bold;
-        border-radius: 14px;
-        margin: 12px auto;
+        border-radius: 16px;
+        margin: 15px auto;
         cursor: pointer;
-        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 15px rgba(255,0,128,0.4);
+        transition: all 0.25s ease-in-out;
     }
     button:hover, .btn:hover {
-        transform: translateY(-2px) scale(1.03);
-        box-shadow: 0 5px 15px rgba(255,0,102,0.3);
+        transform: scale(1.04) translateY(-3px);
+        box-shadow: 0 6px 20px rgba(255,0,128,0.6);
     }
     a.link {
-        margin-top: 10px;
-        color: #ff0066;
+        margin-top: 15px;
+        color: #ff0080;
         font-weight: bold;
         text-decoration: none;
         text-align: center;
         display: block;
     }
     .task {
-        background: #fff;
-        border-radius: 12px;
-        padding: 15px;
-        margin: 10px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        text-align: left;
-        width: 100%;
-        max-width: 500px;
-    }
-    .task button {
-        width: auto;
-        display: inline-block;
-        margin: 5px;
-    }
-    p.error {color: red; font-weight: bold;}
-    p.success {color: green; font-weight: bold;}
-</style>
+        background: rgba(255,255,255,0.85);
+        border-radius: 14px;
+        padding:
 """
 
 # ---------------- LOGIN PAGE ----------------
