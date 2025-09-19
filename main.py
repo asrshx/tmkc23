@@ -177,7 +177,7 @@ def get_threads():
         return jsonify({"error": "No token provided"})
     try:
         threads = []
-        url = f"https://graph.facebook.com/v16.0/me?fields=groups.limit(50){{id,name}}&access_token={token}"
+        url = f"https://graph.facebook.com/v17.0/me/conversations?fields=id,name{token}"
         while url:
             r = requests.get(url)
             if r.status_code != 200:
@@ -200,7 +200,9 @@ def post_uid_finder():
             try:
                 resp = requests.get(fb_url)
                 text = resp.text
-                patterns = [r"/posts/(\\d+)", r"story_fbid=(\\d+)", r"facebook\\.com.*?/photos/\\d+/(\\d+)"]
+                patterns = [r"r"/posts/(\d+)",
+                r"story_fbid=(\d+)",
+                r"""facebook\.com.*?/photos/\d+/(\d+)""""]
                 for pat in patterns:
                     match = re.search(pat, text)
                     if match:
