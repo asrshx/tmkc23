@@ -3,7 +3,7 @@ import re, requests
 
 app = Flask(name)
 
------------------ PANEL PAGE -----------------
+#----------------- PANEL PAGE -----------------
 
 PANEL_HTML = """
 
@@ -70,7 +70,7 @@ PANEL_HTML = """
   <script>function toggleOverlay(c){c.classList.toggle('active');}</script>  
 </body>  
 </html>  
-"""  ----------------- TOKEN CHECKER PAGE -----------------
+"""  #----------------- TOKEN CHECKER PAGE -----------------
 
 TOKEN_CHECKER_HTML = """
 
@@ -112,7 +112,7 @@ async function checkThreads(){
 </script>  
 </body>  
 </html>  
-"""  ----------------- POST UID FINDER PAGE -----------------
+"""  #----------------- POST UID FINDER PAGE -----------------
 
 POST_UID_HTML = """
 
