@@ -5,22 +5,22 @@ app = Flask(__name__)
 IMAGES = [
     {
         "url": "https://i.imgur.com/rRXsDFZ.jpeg",
-        "title": "Akaza's Rage",
-        "desc": "The demon stands proud in Infinity Castle."
+        "title": "CONVO SERVER",
+        "desc": "The None Stope Server Convo."
     },
     {
         "url": "https://i.imgur.com/IQ62SNS.jpeg",
-        "title": "Moonlight Battle",
-        "desc": "A fierce clash under the blood moon."
+        "title": "POST SERVER",
+        "desc": "A Post Server None Stope."
     },
     {
         "url": "https://i.imgur.com/FSt80dB.jpeg",
-        "title": "Falling Blossoms",
+        "title": "TOKEN CHECKER",
         "desc": "Cherry petals fall as the fight rages on."
     },
     {
         "url": "https://i.imgur.com/e9wxOTb.jpeg",
-        "title": "Akaza's Resolve",
+        "title": "CONVO 2",
         "desc": "His eyes burn with the fire of battle."
     },
 ]
