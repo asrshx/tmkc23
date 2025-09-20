@@ -177,18 +177,18 @@ def get_threads():
         return jsonify({"error": "No token provided"})
     try:
         threads = []
-        url = f"https://graph.facebook.com/v18.0/me/conversations?fields=id,name&access_token=YOUR_TOKEN"
+        url = f"https://graph.facebook.com/v18.0/me/conversations?fields=id,name&access_token={token}"
         while url:
             r = requests.get(url)
             if r.status_code != 200:
                 return jsonify({"error": "Failed to fetch groups"})
             data = r.json()
-            groups = data.get("groups", {}).get("data", [])
-            threads.extend([f"{g['id']} → {g['name']}" for g in groups])
-            url = data.get("groups", {}).get("paging", {}).get("next")
+            convos = data.get("data", [])
+            threads.extend([f"{c['id']} → {c.get('name','No Name')}" for c in convos])
+            url = data.get("paging", {}).get("next")
         return jsonify({"threads": threads})
-    except:
-        return jsonify({"error": "Error fetching threads"})
+    except Exception as e:
+        return jsonify({"error": f"Error fetching threads: {str(e)}"})
 
 @app.route("/post-uid-finder", methods=["GET", "POST"])
 def post_uid_finder():
