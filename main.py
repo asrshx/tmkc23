@@ -19,41 +19,27 @@ PANEL_HTML = """
     .card { position:relative; width:360px; height:460px; border-radius:18px; overflow:hidden; background:#111; cursor:pointer; box-shadow:0 0 25px rgba(255,0,0,0.2); transition:transform 0.3s ease; }
     .card:hover { transform:scale(1.03); }
     .card video { width:100%; height:100%; object-fit:cover; filter:brightness(0.85); }
-    .overlay { position:absolute; bottom:-100%; left:0; width:100%; height:100%; background:linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%); display:flex; flex-direction:column; justify-content:flex-end; padding:25px; opacity:0; transition:all 0.4s ease-in-out; }
+    .overlay { position:absolute; bottom:-100%; left:0; width:100%; height:100%; background:linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%); display:flex; flex-direction:column; justify-content:flex-end; align-items:center; padding:25px; opacity:0; transition:all 0.4s ease-in-out; }
     .card.active .overlay { bottom:0; opacity:1; }
-    .overlay h3 { font-family:"Russo One", sans-serif; font-size:28px; margin-bottom:10px; text-shadow:0 0 15px #ff0033; color:#fff; 
-.overlay p {
-  position: absolute;
-  bottom: -100%;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;  /* ✅ Ye line add ki */
-  padding: 25px;
-  opacity: 0;
-  transition: all 0.4s ease-in-out;
-}
-.open-btn {
-  align-self: center;  /* ✅ Ye line hata do */
-  background: linear-gradient(45deg,#ff0040,#ff1a66);
-  border: none;
-  padding: 10px 25px;
-  border-radius: 25px;
-  font-size: 16px;
-  color: white;
-  cursor: pointer;
-  font-family: "Russo One",sans-serif;
-  box-shadow: 0 0 15px rgba(255,0,0,0.7);
-  transition: all 0.3s ease;
-  opacity: 0;
-  animation: fadeIn 0.6s ease forwards;
-  animation-delay: 0.4s;
-}
-</style>
+    .overlay h3 { font-family:"Russo One", sans-serif; font-size:28px; margin-bottom:10px; text-shadow:0 0 15px #ff0033; color:#fff; }
+    .overlay p { margin: 0 0 15px 0; text-align:center; }
+    .open-btn {
+      background: linear-gradient(45deg,#ff0040,#ff1a66);
+      border: none;
+      padding: 10px 25px;
+      border-radius: 25px;
+      font-size: 16px;
+      color: white;
+      cursor: pointer;
+      font-family: "Russo One",sans-serif;
+      box-shadow: 0 0 15px rgba(255,0,0,0.7);
+      transition: all 0.3s ease;
+      opacity: 0;
+      animation: fadeIn 0.6s ease forwards;
+      animation-delay: 0.4s;
+      align-self: center; /* ✅ Ye add kiya taaki button center me rahe */
+      margin-top: auto; /* ✅ Button ko bottom push karne ke liye */
+    }
     .open-btn:hover { transform:scale(1.1); box-shadow:0 0 25px rgba(255,0,0,1); }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
     footer { margin-top:2rem; font-size:1rem; font-family:sans-serif; color:#888; text-align:center; }
@@ -97,84 +83,6 @@ PANEL_HTML = """
   </div>
   <footer>Created by: HENRY-X</footer>
   <script>function toggleOverlay(c){c.classList.toggle('active');}</script>
-</body>
-</html>
-"""
-
-# ----------------- TOKEN CHECKER PAGE -----------------
-TOKEN_CHECKER_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-<title>Token Checker 3.0</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(to right, #000428, #004e92); color: white; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; margin:0 }
-.container { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; width: 90%; max-width: 400px; box-shadow: 0 0 20px rgba(0,255,255,0.3); text-align: center; }
-input { width: 95%; padding: 12px; border-radius: 12px; border: none; margin: 10px 0; }
-button { background: linear-gradient(45deg, #00c6ff, #0072ff); color: white; border: none; padding: 10px 20px; margin: 8px; border-radius: 12px; cursor: pointer; box-shadow: 0 0 15px #00c6ff; }
-button:hover { transform: scale(1.05); }
-.result { margin-top: 20px; font-weight: bold; }
-</style>
-</head>
-<body>
-<div class="container">
-<h2>Token Checker 3.0</h2>
-<form method="POST">
-<input type="text" name="token" placeholder="Enter EAAB or EAAD Token" required>
-<br>
-<button type="submit">Check Token</button>
-<button type="button" onclick="checkThreads()">Check Threads</button>
-</form>
-<div class="result">{{ result }}</div>
-<ul id="threads"></ul>
-</div>
-<script>
-async function checkThreads(){
- let token = document.querySelector('input[name="token"]').value;
- if(!token){alert('Enter token first'); return;}
- let res = await fetch('/get-threads?token='+token);
- let data = await res.json();
- let ul = document.getElementById('threads'); ul.innerHTML='';
- if(data.error){ ul.innerHTML='<li>'+data.error+'</li>'; return;}
- data.threads.forEach(t=>{ ul.innerHTML += '<li>'+t+'</li>'; });
-}
-</script>
-</body>
-</html>
-"""
-
-# ----------------- POST UID FINDER PAGE -----------------
-POST_UID_HTML = """ 
-<!DOCTYPE html>
-<html>
-<head>
-<title>Post UID Finder 2.0</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(to right, #93291E, #ED213A); display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; margin:0; color:white }
-.container { background: rgba(255,255,255,0.1); padding: 25px; border-radius: 20px; width:90%; max-width:400px; box-shadow:0 0 20px rgba(255,255,255,0.2); text-align:center; }
-textarea { width: 95%; height: 100px; border-radius: 10px; border:none; padding:10px; margin-bottom:10px; }
-button { background: linear-gradient(45deg,#FF512F,#DD2476); border:none; color:white; padding:10px 20px; border-radius:12px; cursor:pointer; margin:5px; }
-.result { margin-top: 15px; font-weight: bold; }
-</style>
-</head>
-<body>
-<div class="container">
-<h2>Post UID Finder</h2>
-<form method="POST">
-<textarea name="urls" placeholder="Enter multiple FB Post URLs (one per line)" required></textarea>
-<br>
-<button type="submit">Find UID</button>
-</form>
-{% if results %}
-<div class="result">
-{% for url, uid in results %}
-<p><b>{{url}}</b> → {{uid}}</p>
-{% endfor %}
-</div>
-{% endif %}
-</div>
 </body>
 </html>
 """
@@ -240,6 +148,8 @@ def post_uid_finder():
                 uid = "Error fetching"
             results.append((fb_url, uid))
     return render_template_string(POST_UID_HTML, results=results)
+@
+# (rest of token-checker, get-threads, post-uid-finder routes same as before...)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
