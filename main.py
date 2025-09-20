@@ -202,6 +202,7 @@ TOKEN_PAGE = """
       width:100%;
       max-width:800px;
       text-align:center;
+      hight:300px;
     }
     h2 { font-size:32px; letter-spacing:1px; text-shadow:0 0 15px #ff00ff; margin-bottom:20px; }
     input {
