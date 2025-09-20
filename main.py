@@ -38,7 +38,7 @@ HTML = """
 
     .card {
       flex: 0 0 100%;
-      height: 100%;
+      height: 80%;
       scroll-snap-align: center;
       display: flex;
       align-items: center;
