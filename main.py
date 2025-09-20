@@ -210,8 +210,3 @@ return render_template_string(POST_UID_HTML, results=results)
 
 if name == "main":
 app.run(host="0.0.0.0", port=5000, debug=True)
-
-Isme ek token checker hai us token checker me do kam hote 1st wo token check krta dusra wo thread pe click krne ke bad jo I'd ka token diya hai wo I'd jitne groups me un subka name or thread I'd dikhata hai
-
-But check thread pe clici krte hi failed to fetch group likh ke kyu arha hai
-
