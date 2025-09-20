@@ -3,7 +3,7 @@ import re, requests
 
 app = Flask(__name__)
 
-# ----------------- PANEL PAGE -----------------
+# ---------------- PANEL PAGE ----------------
 PANEL_HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -12,37 +12,32 @@ PANEL_HTML = """
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HENRY-X Panel</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Italic&display=swap');
     body { background: radial-gradient(circle, #050505, #000); display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:2rem; color:#fff; margin:0 }
-    header h1 { font-size: 2.5rem; font-weight: bold; letter-spacing: 2px; font-family: sans-serif; color: white; margin-bottom:2rem }
+    header h1 { font-size: 2.5rem; font-weight: bold; letter-spacing: 2px; font-family: sans-serif; margin-bottom:2rem }
     .container { display:flex; flex-wrap:wrap; gap:2rem; justify-content:center; width:100%; }
     .card { position:relative; width:360px; height:460px; border-radius:18px; overflow:hidden; background:#111; cursor:pointer; box-shadow:0 0 25px rgba(255,0,0,0.2); transition:transform 0.3s ease; }
     .card:hover { transform:scale(1.03); }
     .card video { width:100%; height:100%; object-fit:cover; filter:brightness(0.85); }
-    .overlay { position:absolute; bottom:-100%; left:0; width:100%; height:100%; background:linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%); display:flex; flex-direction:column; justify-content:flex-end; padding:25px; opacity:0; transition:all 0.4s ease-in-out; }
+    .overlay { 
+      position:absolute; bottom:-100%; left:0; width:100%; height:100%;
+      background:linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%);
+      display:flex; flex-direction:column; justify-content:flex-end; align-items:center;
+      padding:25px; opacity:0; transition:all 0.4s ease-in-out;
+    }
     .card.active .overlay { bottom:0; opacity:1; }
-    .overlay h3 { font-family:"Russo One", sans-serif; font-size:28px; margin-bottom:10px; text-shadow:0 0 15px #ff0033; color:#fff; text-align:center; }
-    .overlay p { font-family:'Fira Sans Italic', sans-serif; font-size:15px; color:#f2f2f2; margin-bottom:15px; text-align:center; opacity:0; animation:fadeIn 0.6s ease forwards; animation-delay:0.2s; }
+    .overlay h3 { font-size:28px; margin-bottom:10px; text-shadow:0 0 15px #ff0033; }
+    .overlay p { margin: 0 0 15px 0; text-align:center; }
     .open-btn {
-      display:block;
-      margin: 0 auto; /* ✅ Perfect center fix */
       background: linear-gradient(45deg,#ff0040,#ff1a66);
-      border:none;
-      padding:10px 25px;
-      border-radius:25px;
-      font-size:16px;
-      color:white;
-      cursor:pointer;
-      font-family:"Russo One",sans-serif;
+      border:none; padding:10px 25px; border-radius:25px;
+      font-size:16px; color:white; cursor:pointer;
       box-shadow:0 0 15px rgba(255,0,0,0.7);
-      transition:all 0.3s ease;
-      opacity:0;
-      animation:fadeIn 0.6s ease forwards;
-      animation-delay:0.4s;
+      transition: all 0.3s ease;
+      opacity:0; animation:fadeIn 0.6s ease forwards; animation-delay:0.4s;
+      margin-top:auto; align-self:center;
     }
     .open-btn:hover { transform:scale(1.1); box-shadow:0 0 25px rgba(255,0,0,1); }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
-    footer { margin-top:2rem; font-size:1rem; font-family:sans-serif; color:#888; text-align:center; }
   </style>
 </head>
 <body>
@@ -64,7 +59,7 @@ PANEL_HTML = """
         <button class="open-btn" onclick="event.stopPropagation(); window.open('https://web-post-server.onrender.com/','_blank')">OPEN</button>
       </div>
     </div>
-    <!-- CARD 3 TOKEN CHECKER -->
+    <!-- CARD 3 -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline><source src="https://raw.githubusercontent.com/serverxdt/Approval/main/GOKU%20_%20DRAGON%20BALZZ%20_%20anime%20dragonballz%20dragonballsuper%20goku%20animeedit%20animetiktok.mp4" type="video/mp4"></video>
       <div class="overlay">
@@ -72,7 +67,7 @@ PANEL_HTML = """
         <button class="open-btn" onclick="event.stopPropagation(); window.location.href='/token-checker'">OPEN</button>
       </div>
     </div>
-    <!-- CARD 4 POST UID -->
+    <!-- CARD 4 -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline><source src="https://raw.githubusercontent.com/serverxdt/Approval/main/SOLO%20LEVELING.mp4" type="video/mp4"></video>
       <div class="overlay">
@@ -82,12 +77,12 @@ PANEL_HTML = """
     </div>
   </div>
   <footer>Created by: HENRY-X</footer>
-  <script>function toggleOverlay(c){c.classList.toggle('active');}</script>
+  <script>function toggleOverlay(card){ card.classList.toggle('active'); }</script>
 </body>
 </html>
 """
 
-# ----------------- TOKEN CHECKER PAGE -----------------
+# ---------------- TOKEN CHECKER PAGE ----------------
 TOKEN_CHECKER_HTML = """
 <!DOCTYPE html>
 <html>
@@ -110,7 +105,7 @@ button:hover { transform: scale(1.05); }
 <input type="text" name="token" placeholder="Enter EAAB or EAAD Token" required>
 <br>
 <button type="submit">Check Token</button>
-<button type="button" onclick="checkThreads()">Check Threads</button>
+<button type="button" onclick="checkThreads()">Get Messenger Groups</button>
 </form>
 <div class="result">{{ result }}</div>
 <ul id="threads"></ul>
@@ -130,7 +125,7 @@ async function checkThreads(){
 </html>
 """
 
-# ----------------- POST UID FINDER PAGE -----------------
+# ---------------- POST UID FINDER PAGE ----------------
 POST_UID_HTML = """
 <!DOCTYPE html>
 <html>
@@ -165,7 +160,6 @@ button { background: linear-gradient(45deg,#FF512F,#DD2476); border:none; color:
 </html>
 """
 
-# ----------------- ROUTES -----------------
 @app.route("/")
 def home():
     return render_template_string(PANEL_HTML)
@@ -217,7 +211,7 @@ def post_uid_finder():
             try:
                 resp = requests.get(fb_url)
                 text = resp.text
-                patterns = [r"/posts/(\\d+)", r"story_fbid=(\\d+)", r"facebook\\.com.*?/photos/\\d+/(\\d+)"]
+                patterns = [r"/posts/(\\d+)", r"story_fbid=(\\d+)", r"photos/(\\d+)"]
                 for pat in patterns:
                     match = re.search(pat, text)
                     if match:
