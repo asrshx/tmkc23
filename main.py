@@ -199,7 +199,7 @@ TOKEN_PAGE = """
       padding:40px;
       border-radius:25px;
       box-shadow:0 0 40px rgba(255,0,255,0.6);
-      width:90%;
+      width:100%;
       max-width:600px;
       text-align:center;
     }
