@@ -23,10 +23,7 @@ HTML_PAGE = """
       padding: 2rem;
       color: #fff;
     }
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+    header { text-align: center; margin-bottom: 2rem; }
     header h1 {
       font-size: 2.5rem;
       font-weight: bold;
@@ -89,7 +86,6 @@ HTML_PAGE = """
       text-shadow: 0 0 15px #ff0033, 0 0 25px rgba(255,0,0,0.7);
       color: #fff;
       letter-spacing: 1px;
-      animation: slideUp 0.4s ease forwards;
     }
     .overlay p {
       font-family: 'Fira Sans Italic', sans-serif;
@@ -120,10 +116,6 @@ HTML_PAGE = """
       transform: scale(1.1);
       box-shadow: 0 0 25px rgba(255,0,0,1);
     }
-    @keyframes slideUp {
-      from { transform: translateY(30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     footer {
       margin-top: 2rem;
@@ -137,7 +129,6 @@ HTML_PAGE = """
 <body>
   <header><h1>HENRY-X</h1></header>
   <div class="container">
-    <!-- CARD 1 -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline>
         <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/223.mp4" type="video/mp4">
@@ -148,7 +139,6 @@ HTML_PAGE = """
         <button class="open-btn" onclick="event.stopPropagation(); window.open('https://ambitious-haleigh-zohan-6ed14c8a.koyeb.app/','_blank')">OPEN</button>
       </div>
     </div>
-    <!-- CARD 2 -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline>
         <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/Anime.mp4" type="video/mp4">
@@ -159,18 +149,16 @@ HTML_PAGE = """
         <button class="open-btn" onclick="event.stopPropagation(); window.open('https://web-post-server.onrender.com/','_blank')">OPEN</button>
       </div>
     </div>
-    <!-- CARD 3 (TOKEN CHECKER) -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline>
         <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/GOKU%20_%20DRAGON%20BALZZ%20_%20anime.mp4" type="video/mp4">
       </video>
       <div class="overlay">
         <h3>Token Checker 3.0</h3>
-        <p>Token checker + Thread ID extractor...</p>
+        <p>Token checker + Group UID extractor</p>
         <button class="open-btn" onclick="event.stopPropagation(); window.location.href='/token-checker'">OPEN</button>
       </div>
     </div>
-    <!-- CARD 4 (POST UID FINDER) -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline>
         <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/SOLO%20LEVELING.mp4" type="video/mp4">
@@ -183,11 +171,7 @@ HTML_PAGE = """
     </div>
   </div>
   <footer>Created by: HENRY-X</footer>
-  <script>
-    function toggleOverlay(card) {
-      card.classList.toggle('active');
-    }
-  </script>
+  <script>function toggleOverlay(card){ card.classList.toggle('active'); }</script>
 </body>
 </html>
 """
@@ -199,14 +183,17 @@ TOKEN_PAGE = """
 <head>
   <title>Token Checker 3.0</title>
   <style>
-    body { background:#0a0a0a; display:flex; flex-direction:column; align-items:center; color:white; font-family:sans-serif; }
-    .box { margin-top:60px; background:rgba(255,0,50,0.1); backdrop-filter:blur(12px); padding:20px; border-radius:20px; box-shadow:0 0 25px rgba(255,0,0,0.4); width:90%; max-width:500px; text-align:center; }
-    input { width:90%; padding:10px; border:none; border-radius:8px; margin:10px 0; }
-    button { background:linear-gradient(45deg,#ff0040,#ff1a66); color:white; border:none; padding:10px 20px; margin:5px; border-radius:20px; cursor:pointer; box-shadow:0 0 15px rgba(255,0,0,0.7); }
-    button:hover { transform:scale(1.05); box-shadow:0 0 25px rgba(255,0,0,1); }
-    pre { background:#111; padding:10px; border-radius:10px; text-align:left; max-height:300px; overflow:auto; margin-top:10px; white-space:pre-wrap; }
-    .success { color:#0f0; }
-    .error { color:#f33; }
+    body { background: linear-gradient(135deg,#000,#330000,#000);
+      display:flex;flex-direction:column;align-items:center;color:white;font-family:sans-serif; }
+    .box { margin-top:60px;background:rgba(0,0,0,0.65);backdrop-filter:blur(15px);padding:25px;border-radius:20px;
+      box-shadow:0 0 35px rgba(255,0,0,0.5);width:90%;max-width:520px;text-align:center; }
+    h2 { font-size:28px;letter-spacing:1px;text-shadow:0 0 12px #ff0033;margin-bottom:15px; }
+    input { width:90%;padding:12px;border:none;border-radius:10px;margin:12px 0;font-size:16px;background:#222;color:#fff; }
+    .btn { display:inline-block;font-size:16px;font-weight:bold;margin:8px;padding:12px 28px;border-radius:30px;cursor:pointer;border:none; }
+    .btn-check { background:linear-gradient(45deg,#00ff99,#00cc66);box-shadow:0 0 15px rgba(0,255,150,0.7); }
+    .btn-thread { background:linear-gradient(45deg,#3399ff,#0055ff);box-shadow:0 0 15px rgba(0,140,255,0.7); }
+    pre { background:#111;padding:12px;border-radius:12px;margin-top:12px;max-height:300px;overflow:auto;text-align:left; }
+    .success { color:#0f0; } .error { color:#f33; }
   </style>
 </head>
 <body>
@@ -214,8 +201,8 @@ TOKEN_PAGE = """
     <h2>Token Checker 3.0</h2>
     <input id="token" placeholder="Enter EAAD or EAAB Token...">
     <div>
-      <button onclick="checkToken()">Check Token</button>
-      <button onclick="getThreads()">Get Thread IDs</button>
+      <button class="btn btn-check" onclick="checkToken()">🔑 Check Token</button>
+      <button class="btn btn-thread" onclick="getThreads()">💬 Get Group UIDs</button>
     </div>
     <pre id="result"></pre>
   </div>
@@ -247,12 +234,14 @@ POST_PAGE = """
 <head>
   <title>Post UID Finder</title>
   <style>
-    body { background:#0a0a0a; display:flex; flex-direction:column; align-items:center; color:white; font-family:sans-serif; }
-    .box { margin-top:60px; background:rgba(255,0,50,0.1); backdrop-filter:blur(12px); padding:20px; border-radius:20px; box-shadow:0 0 25px rgba(255,0,0,0.4); width:90%; max-width:500px; text-align:center; }
-    input { width:90%; padding:10px; border:none; border-radius:8px; margin:10px 0; }
-    button { background:linear-gradient(45deg,#ff0040,#ff1a66); color:white; border:none; padding:10px 20px; margin:5px; border-radius:20px; cursor:pointer; box-shadow:0 0 15px rgba(255,0,0,0.7); }
-    button:hover { transform:scale(1.05); box-shadow:0 0 25px rgba(255,0,0,1); }
-    pre { background:#111; padding:10px; border-radius:10px; text-align:left; margin-top:10px; }
+    body { background: linear-gradient(135deg,#000,#440000,#000);
+      display:flex;flex-direction:column;align-items:center;color:white;font-family:sans-serif; }
+    .box { margin-top:60px;background:rgba(0,0,0,0.65);backdrop-filter:blur(15px);padding:25px;border-radius:20px;
+      box-shadow:0 0 35px rgba(255,0,0,0.5);width:90%;max-width:520px;text-align:center; }
+    input { width:90%;padding:12px;border:none;border-radius:10px;margin:12px 0;font-size:16px;background:#222;color:#fff; }
+    button { background:linear-gradient(45deg,#ff0040,#ff1a66);color:white;border:none;padding:12px 28px;margin:5px;
+      border-radius:20px;cursor:pointer;box-shadow:0 0 15px rgba(255,0,0,0.7); }
+    pre { background:#111;padding:12px;border-radius:12px;margin-top:12px;text-align:left; }
   </style>
 </head>
 <body>
@@ -276,18 +265,14 @@ POST_PAGE = """
 """
 
 @app.route("/")
-def home():
-    return render_template_string(HTML_PAGE)
+def home(): return render_template_string(HTML_PAGE)
 
 @app.route("/token-checker")
-def token_checker():
-    return render_template_string(TOKEN_PAGE)
+def token_checker(): return render_template_string(TOKEN_PAGE)
 
 @app.route("/post-uid-finder")
-def post_uid_finder():
-    return render_template_string(POST_PAGE)
+def post_uid_finder(): return render_template_string(POST_PAGE)
 
-# ---------------------- BACKEND API ----------------------
 @app.route("/api/check-token", methods=["POST"])
 def api_check_token():
     token = request.json.get("token")
@@ -296,8 +281,7 @@ def api_check_token():
         data = r.json()
         if "name" in data:
             return jsonify({"valid": True, "name": data["name"]})
-        else:
-            return jsonify({"valid": False})
+        return jsonify({"valid": False})
     except:
         return jsonify({"valid": False})
 
@@ -305,11 +289,12 @@ def api_check_token():
 def api_thread_ids():
     token = request.json.get("token")
     try:
-        r = requests.get(f"https://graph.facebook.com/me?fields=id&access_token={token}")
-        if r.status_code != 200:
-            return jsonify({"error":"Invalid token!"})
-        # Dummy data (replace with real endpoint if available)
-        return jsonify({"threads": "1234567890\\n2345678901\\n3456789012"})
+        r = requests.get(f"https://graph.facebook.com/me/groups?access_token={token}")
+        data = r.json()
+        if "data" in data:
+            threads = "\n".join([g["id"] for g in data["data"]])
+            return jsonify({"threads": threads if threads else "No groups found!"})
+        return jsonify({"error":"Invalid token or no data"})
     except:
         return jsonify({"error":"Something went wrong"})
 
@@ -317,7 +302,6 @@ def api_thread_ids():
 def api_post_uid():
     url = request.json.get("url")
     try:
-        # Extract UID from URL
         if "posts/" in url:
             uid = url.split("posts/")[1].split("/")[0]
         elif "story_fbid=" in url:
