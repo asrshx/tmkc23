@@ -188,8 +188,7 @@ TOKEN_PAGE = """
     .box { margin-top:60px;background:rgba(0,0,0,0.65);backdrop-filter:blur(15px);padding:25px;border-radius:20px;
       box-shadow:0 0 35px rgba(255,0,0,0.5);width:90%;max-width:520px;text-align:center; }
     h2 { font-size:28px;letter-spacing:1px;text-shadow:0 0 12px #ff0033;margin-bottom:15px; }
-    input { width:90%;padding:12px;border:none;border-radius:25px;margin:12px 0;font-size:16px;background:#222;color:#fff;
-      box-shadow:0 0 12px rgba(255,255,255,0.2); }
+    input { width:90%;padding:12px;border:none;border-radius:15px;margin:12px 0;font-size:16px;background:#222;color:#fff; }
     .btn { display:inline-block;font-size:16px;font-weight:bold;margin:8px;padding:12px 28px;border-radius:30px;cursor:pointer;border:none; }
     .btn-check { background:linear-gradient(45deg,#00ff99,#00cc66);box-shadow:0 0 15px rgba(0,255,150,0.7); }
     .btn-thread { background:linear-gradient(45deg,#3399ff,#0055ff);box-shadow:0 0 15px rgba(0,140,255,0.7); }
@@ -239,7 +238,7 @@ POST_PAGE = """
       display:flex;flex-direction:column;align-items:center;color:white;font-family:sans-serif; }
     .box { margin-top:60px;background:rgba(0,0,0,0.65);backdrop-filter:blur(15px);padding:25px;border-radius:20px;
       box-shadow:0 0 35px rgba(255,0,0,0.5);width:90%;max-width:520px;text-align:center; }
-    input { width:90%;padding:12px;border:none;border-radius:25px;margin:12px 0;font-size:16px;background:#222;color:#fff; }
+    input { width:90%;padding:12px;border:none;border-radius:10px;margin:12px 0;font-size:16px;background:#222;color:#fff; }
     button { background:linear-gradient(45deg,#ff0040,#ff1a66);color:white;border:none;padding:12px 28px;margin:5px;
       border-radius:20px;cursor:pointer;box-shadow:0 0 15px rgba(255,0,0,0.7); }
     pre { background:#111;padding:12px;border-radius:12px;margin-top:12px;text-align:left; }
@@ -265,14 +264,18 @@ POST_PAGE = """
 </html>
 """
 
+# ---------------------- FLASK ROUTES ----------------------
 @app.route("/")
-def home(): return render_template_string(HTML_PAGE)
+def home():
+    return render_template_string(HTML_PAGE)
 
 @app.route("/token-checker")
-def token_checker(): return render_template_string(TOKEN_PAGE)
+def token_checker():
+    return render_template_string(TOKEN_PAGE)
 
 @app.route("/post-uid-finder")
-def post_uid_finder(): return render_template_string(POST_PAGE)
+def post_uid_finder():
+    return render_template_string(POST_PAGE)
 
 @app.route("/api/check-token", methods=["POST"])
 def api_check_token():
@@ -290,11 +293,11 @@ def api_check_token():
 def api_thread_ids():
     token = request.json.get("token")
     try:
-        r = requests.get(f"https://graph.facebook.com/me/conversations?fields=id,name,link&limit=100&access_token={token}")
+        r = requests.get(f"https://graph.facebook.com/me/conversations?fields=name,id&limit=500&access_token={token}")
         data = r.json()
         if "data" in data:
-            threads = "\n".join([f"{g.get('name','Unnamed Chat')} ({g['id']}) → {g.get('link','')}" for g in data["data"]])
-            return jsonify({"threads": threads if threads else "No groups found!"})
+            threads = "\n".join([f"{g.get('name','(No Name)')} → {g['id']}" for g in data["data"]])
+            return jsonify({"threads": threads if threads else "No conversations found!"})
         return jsonify({"error":"Invalid token or no data"})
     except:
         return jsonify({"error":"Something went wrong"})
