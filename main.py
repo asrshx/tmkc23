@@ -4,22 +4,22 @@ app = Flask(__name__)
 
 IMAGES = [
     {
-        "url": "https://i.imgur.com/rRXsDFZ.jpeg",
+        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
         "title": "Akaza's Rage",
         "desc": "The demon stands proud in Infinity Castle."
     },
     {
-        "url": "https://i.imgur.com/IQ62SNS.jpeg",
+        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
         "title": "Moonlight Battle",
         "desc": "A fierce clash under the blood moon."
     },
     {
-        "url": "https://i.imgur.com/FSt80dB.jpeg",
+        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
         "title": "Falling Blossoms",
         "desc": "Cherry petals fall as the fight rages on."
     },
     {
-        "url": "https://i.imgur.com/e9wxOTb.jpeg",
+        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
         "title": "Akaza's Resolve",
         "desc": "His eyes burn with the fire of battle."
     },
