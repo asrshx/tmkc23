@@ -199,10 +199,10 @@ TOKEN_PAGE = """
       padding:40px;
       border-radius:25px;
       box-shadow:0 0 40px rgba(255,0,255,0.6);
-      width:100%;
+      width:200%;
       max-width:800px;
       text-align:center;
-      hight:300px;
+      hight:700px;
     }
     h2 { font-size:32px; letter-spacing:1px; text-shadow:0 0 15px #ff00ff; margin-bottom:20px; }
     input {
