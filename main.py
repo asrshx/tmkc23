@@ -4,22 +4,22 @@ app = Flask(__name__)
 
 IMAGES = [
     {
-        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
+        "url": "https://i.imgur.com/rRXsDFZ.jpeg",
         "title": "Akaza's Rage",
         "desc": "The demon stands proud in Infinity Castle."
     },
     {
-        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
+        "url": "https://i.imgur.com/IQ62SNS.jpeg",
         "title": "Moonlight Battle",
         "desc": "A fierce clash under the blood moon."
     },
     {
-        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
+        "url": "https://i.imgur.com/FSt80dB.jpeg",
         "title": "Falling Blossoms",
         "desc": "Cherry petals fall as the fight rages on."
     },
     {
-        "url": "https://i.imgur.com/e0Pbfgr.jpeg",
+        "url": "https://i.imgur.com/e9wxOTb.jpeg",
         "title": "Akaza's Resolve",
         "desc": "His eyes burn with the fire of battle."
     },
@@ -60,27 +60,27 @@ HTML = """
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
       align-items: center;
-      gap: 60px; /* ✅ Thoda zyada gap for balance */
-      padding: 20px 40px;
-      justify-content: center;
+      gap: 40px;
+      padding: 40px;
+      justify-content: flex-start;
+      box-sizing: border-box;
     }
 
     .card {
-      flex: 0 0 auto;
+      flex: 0 0 80%; /* ✅ Fixed percentage width so all fit properly */
+      max-width: 700px;
       scroll-snap-align: center;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      margin: 0 auto;
       transition: transform 0.4s ease, box-shadow 0.4s ease;
       cursor: pointer;
-      max-width: 600px; /* ✅ Perfect balanced width */
     }
 
     .card img {
       width: 100%;
-      max-height: 700px;
+      height: 700px; /* ✅ Fixed height for all images */
       object-fit: cover;
       border-radius: 20px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.8);
@@ -136,16 +136,12 @@ HTML = """
       color: #fff;
     }
 
-    /* ✅ Responsive - Mobile ke liye better layout */
     @media (max-width: 768px) {
       .card {
-        max-width: 90%;
+        flex: 0 0 90%;
       }
       .card img {
-        max-height: 500px;
-      }
-      .overlay-text h2 {
-        font-size: 1.4rem;
+        height: 500px;
       }
     }
   </style>
