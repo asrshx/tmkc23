@@ -1,4 +1,5 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request, jsonify
+import requests
 
 app = Flask(__name__)
 
@@ -10,247 +11,197 @@ HTML_PAGE = """
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HENRY-X Panel</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Fira+Sans+Italic&display=swap');
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@1,400&family=Russo+One&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: radial-gradient(circle at center, #050505, #000000 70%);
-      display: flex;
-      flex-direction: column;
+      background: radial-gradient(circle, #050505, #000);
+      display: flex; flex-direction: column;
       align-items: center;
       min-height: 100vh;
       padding: 2rem;
       color: #fff;
-      font-family: 'Orbitron', sans-serif;
-      overflow-x: hidden;
+      font-family: 'Fira Sans', sans-serif;
     }
-
-    /* ✅ Futuristic Animated Header */
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
-      animation: glowHeader 2s ease-in-out infinite alternate;
-    }
-
     header h1 {
-      font-size: 3rem;
-      letter-spacing: 3px;
-      background: linear-gradient(90deg, #ff0040, #ff77a9, #ff0040);
-      background-size: 300% 300%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientMove 5s ease infinite;
-      text-shadow: 0 0 20px rgba(255,0,64,0.8);
+      font-size: 2.5rem;
+      letter-spacing: 2px;
+      font-family: sans-serif;
+      color: white;
+      margin-bottom: 2rem;
     }
-
-    @keyframes gradientMove {
-      0% {background-position: 0% 50%;}
-      50% {background-position: 100% 50%;}
-      100% {background-position: 0% 50%;}
-    }
-
-    @keyframes glowHeader {
-      from { text-shadow: 0 0 10px #ff0040, 0 0 20px #ff0040; }
-      to { text-shadow: 0 0 25px #ff3385, 0 0 45px #ff0040; }
-    }
-
     .container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      justify-content: center;
-      width: 100%;
+      display: flex; flex-wrap: wrap; gap: 2rem;
+      justify-content: center; width: 100%;
     }
-
-    /* ✅ Futuristic Glass Cards */
     .card {
       position: relative;
-      width: 360px;
-      height: 460px;
+      width: 360px; height: 460px;
       border-radius: 18px;
       overflow: hidden;
-      background: rgba(17,17,17,0.6);
-      backdrop-filter: blur(12px);
+      background: #111;
       cursor: pointer;
-      box-shadow: 0 0 25px rgba(255,0,0,0.3), inset 0 0 15px rgba(255,0,0,0.2);
-      transition: transform 0.4s ease, box-shadow 0.3s ease;
-      transform-style: preserve-3d;
-      opacity: 0;
-      animation: fadeSlide 0.8s ease forwards;
+      box-shadow: 0 0 25px rgba(255,0,0,0.2);
+      transition: transform 0.3s ease;
     }
-
-    .card:hover {
-      transform: scale(1.05) rotateX(5deg) rotateY(5deg);
-      box-shadow: 0 0 35px rgba(255,0,0,0.8), 0 0 60px rgba(255,0,0,0.6);
-    }
-
-    @keyframes fadeSlide {
-      from { opacity: 0; transform: translateY(40px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
+    .card:hover { transform: scale(1.03); }
     .card video {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: cover;
       filter: brightness(0.85);
     }
-
-    /* ✅ Neon Overlay */
     .overlay {
       position: absolute;
       bottom: -100%;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(to top, rgba(255,0,64,0.7), rgba(0,0,0,0.2) 60%);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 25px;
+      left: 0; width: 100%; height: 100%;
+      background: linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%);
+      display: flex; flex-direction: column;
+      justify-content: flex-end; padding: 25px;
       opacity: 0;
       transition: all 0.4s ease-in-out;
       z-index: 2;
     }
-
-    .card.active .overlay {
-      bottom: 0;
-      opacity: 1;
-    }
-
+    .card.active .overlay { bottom: 0; opacity: 1; }
     .overlay h3 {
+      font-family: "Russo One", sans-serif;
       font-size: 28px;
       margin-bottom: 10px;
       text-shadow: 0 0 15px #ff0033, 0 0 25px rgba(255,0,0,0.7);
-      color: #fff;
-      letter-spacing: 1px;
     }
-
     .overlay p {
-      font-family: 'Fira Sans Italic', sans-serif;
-      font-size: 15px;
-      color: #f2f2f2;
-      margin-bottom: 15px;
-      opacity: 0;
-      animation: fadeIn 0.6s ease forwards;
+      font-size: 15px; margin-bottom: 15px;
+      opacity: 0; animation: fadeIn 0.6s ease forwards;
       animation-delay: 0.2s;
     }
-
     .open-btn {
       align-self: center;
-      background: linear-gradient(90deg, #ff0040, #ff1a66, #ff3385);
-      border: none;
-      padding: 10px 25px;
-      border-radius: 25px;
-      font-size: 16px;
-      color: white;
-      cursor: pointer;
-      font-family: "Orbitron", sans-serif;
-      box-shadow: 0 0 20px rgba(255,0,0,0.7);
+      background: linear-gradient(45deg, #ff0040, #ff1a66);
+      border: none; padding: 10px 25px;
+      border-radius: 25px; font-size: 16px;
+      color: white; cursor: pointer;
+      font-family: "Russo One", sans-serif;
+      box-shadow: 0 0 15px rgba(255,0,0,0.7);
       transition: all 0.3s ease;
       opacity: 0;
       animation: fadeIn 0.6s ease forwards;
       animation-delay: 0.4s;
     }
+    .open-btn:hover { transform: scale(1.1); box-shadow: 0 0 25px rgba(255,0,0,1); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    footer { margin-top: 2rem; font-size: 1rem; color: #888; text-align: center; }
 
-    .open-btn:hover {
-      transform: scale(1.15);
-      box-shadow: 0 0 30px rgba(255,0,0,1), 0 0 50px rgba(255,0,0,0.8);
+    /* Popup Panel */
+    .popup {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: #111; border-radius: 20px;
+      width: 90%; max-width: 450px;
+      padding: 2rem;
+      box-shadow: 0 0 25px rgba(255,0,0,0.6);
+      display: flex; flex-direction: column; gap: 1rem;
+      transition: 0.3s ease;
+      z-index: 999;
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+    .popup.active { transform: translate(-50%, -50%) scale(1); }
+    .popup h2 { text-align: center; font-family: "Russo One", sans-serif; }
+    .popup input {
+      padding: 10px; border-radius: 10px;
+      border: none; outline: none;
+      background: #222; color: white;
+      font-size: 15px;
     }
-
-    footer {
-      margin-top: 2rem;
-      font-size: 1rem;
-      font-family: 'Orbitron', sans-serif;
-      color: #888;
-      text-align: center;
-      opacity: 0.7;
+    .popup button {
+      padding: 10px; border: none;
+      border-radius: 10px;
+      background: linear-gradient(45deg, #ff0040, #ff1a66);
+      color: white; cursor: pointer;
+      font-family: "Russo One", sans-serif;
+    }
+    .close-btn {
+      position: absolute; top: 10px; right: 15px;
+      background: transparent; border: none;
+      color: white; font-size: 20px; cursor: pointer;
+    }
+    pre {
+      background: #000; padding: 10px;
+      border-radius: 10px; color: #0f0;
+      max-height: 200px; overflow: auto;
     }
   </style>
 </head>
 <body>
-
-  <header>
-    <h1>⚡ HENRY-X 2060 PANEL ⚡</h1>
-  </header>
-
+  <header><h1>HENRY-X</h1></header>
   <div class="container">
-    <!-- Same Cards as Before -->
-    <!-- CARD 1 -->
-    <div class="card" onclick="toggleOverlay(this)">
-      <video autoplay muted loop playsinline>
-        <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/223.mp4" type="video/mp4">
-      </video>
-      <div class="overlay">
-        <h3>Convo 3.0</h3>
-        <p>𝘕𝘰𝘯𝘦 𝘚𝘵𝘰𝘱𝘦 𝘊𝘰𝘯𝘷𝘰 𝘉𝘺 𝘏𝘦𝘯𝘳𝘺 | 𝘔𝘶𝘭𝘵𝘺 + 𝘚𝘪𝘯𝘨𝘭𝘦 𝘉𝘰𝘵𝘩 𝘈𝘷𝘢𝘪𝘭𝘣𝘭𝘦 𝘐𝘯 𝘛𝘩𝘢𝘯𝘬𝘴 𝘍𝘰𝘳 𝘜𝘴𝘪𝘯𝘨..</p>
-        <button class="open-btn" onclick="event.stopPropagation(); window.open('https://ambitious-haleigh-zohan-6ed14c8a.koyeb.app/','_blank')">
-          OPEN
-        </button>
-      </div>
-    </div>
-
-    <!-- CARD 2 -->
-    <div class="card" onclick="toggleOverlay(this)">
-      <video autoplay muted loop playsinline>
-        <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/Anime.mp4" type="video/mp4">
-      </video>
-      <div class="overlay">
-        <h3>Post 3.0</h3>
-        <p>𝘔𝘶𝘭𝘵𝘺 𝘊𝘰𝘰𝘬𝘪𝘦 + 𝘔𝘶𝘭𝘵𝘺 𝘛𝘰𝘬𝘦𝘯 | 𝘛𝘩𝘳𝘦𝘢𝘥 𝘚𝘵𝘰𝘱𝘦 𝘈𝘯𝘥 𝘙𝘦𝘴𝘶𝘮𝘦 𝘈𝘯𝘥 𝘗𝘢𝘶𝘴𝘦 𝘈𝘷𝘢𝘪𝘢𝘭𝘣𝘭𝘦 𝘌𝘯𝘫𝘰𝘺 𝘕𝘰𝘸.. </p>
-        <button class="open-btn" onclick="event.stopPropagation(); window.open('https://web-post-server.onrender.com/','_blank')">
-          OPEN
-        </button>
-      </div>
-    </div>
-
-    <!-- CARD 3 -->
+    <!-- Token Checker Card -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline>
         <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/GOKU%20_%20DRAGON%20BALZZ%20_%20anime%20dragonballz%20dragonballsuper%20goku%20animeedit%20animetiktok.mp4" type="video/mp4">
       </video>
       <div class="overlay">
         <h3>Token Checker 3.0</h3>
-        <p>𝘛𝘰𝘬𝘦𝘯 𝘊𝘩𝘦𝘤𝘬𝘦𝘳 | 𝘎𝘤 𝘜𝘪𝘥 𝘌𝘹𝘵𝘳𝘢𝘤𝘵𝘰𝘳 𝘉𝘰𝘵𝘩 𝘐𝘯 𝘖𝘯𝘦 𝘛𝘰𝘰𝘭 𝘏𝘦𝘳𝘦..</p>
-        <button class="open-btn" onclick="event.stopPropagation(); window.open('https://token-beta-indol.vercel.app/','_blank')">
-          OPEN
-        </button>
+        <p>Token + Thread UID Finder</p>
+        <button class="open-btn" onclick="event.stopPropagation(); openPopup('token-popup')">OPEN</button>
       </div>
     </div>
-
-    <!-- CARD 4 -->
+    <!-- Post UID Card -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline>
         <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/SOLO%20LEVELING.mp4" type="video/mp4">
       </video>
       <div class="overlay">
-        <h3>Post Uid 2.0</h3>
-        <p>𝘌𝘯𝘵𝘦𝘳 𝘠𝘰𝘶 𝘗𝘰𝘴𝘵 𝘓𝘪𝘯𝘬 𝘈𝘯𝘥 𝘌𝘹𝘵𝘳𝘢𝘤𝘵 𝘛𝘰 𝘗𝘰𝘴𝘵 𝘜𝘪𝘥 𝘌𝘢𝘴𝘪𝘭𝘺..</p>
-        <button class="open-btn" onclick="event.stopPropagation(); window.open('https://post-uid-finder.vercel.app/','_blank')">
-          OPEN
-        </button>
+        <h3>Post UID Finder</h3>
+        <p>Enter FB Post Link & Extract UID</p>
+        <button class="open-btn" onclick="event.stopPropagation(); openPopup('post-popup')">OPEN</button>
       </div>
     </div>
   </div>
 
-  <footer>⚡ Created by: HENRY-X ⚡</footer>
+  <!-- Token Checker Popup -->
+  <div class="popup" id="token-popup">
+    <button class="close-btn" onclick="closePopup('token-popup')">✖</button>
+    <h2>Token Checker</h2>
+    <input id="token-input" placeholder="Enter EAAD / EAAB Token">
+    <button onclick="checkToken()">Check Token</button>
+    <button onclick="getThreads()">Get Thread IDs</button>
+    <pre id="token-result"></pre>
+  </div>
+
+  <!-- Post UID Popup -->
+  <div class="popup" id="post-popup">
+    <button class="close-btn" onclick="closePopup('post-popup')">✖</button>
+    <h2>Post UID Finder</h2>
+    <input id="post-url" placeholder="Enter FB Post URL">
+    <button onclick="getPostUID()">Get UID</button>
+    <pre id="post-result"></pre>
+  </div>
+
+  <footer>Created by: HENRY-X</footer>
 
   <script>
-    function toggleOverlay(card) {
-      card.classList.toggle('active');
+    function toggleOverlay(card){ card.classList.toggle('active'); }
+    function openPopup(id){ document.getElementById(id).classList.add('active'); }
+    function closePopup(id){ document.getElementById(id).classList.remove('active'); }
+
+    async function checkToken(){
+      const token = document.getElementById("token-input").value;
+      let res = await fetch("/check_token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});
+      let data = await res.json();
+      document.getElementById("token-result").innerText = JSON.stringify(data,null,2);
+    }
+
+    async function getThreads(){
+      const token = document.getElementById("token-input").value;
+      let res = await fetch("/get_threads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});
+      let data = await res.json();
+      document.getElementById("token-result").innerText = JSON.stringify(data,null,2);
+    }
+
+    async function getPostUID(){
+      const url = document.getElementById("post-url").value;
+      let res = await fetch("/get_post_uid",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+      let data = await res.json();
+      document.getElementById("post-result").innerText = JSON.stringify(data,null,2);
     }
   </script>
-
 </body>
 </html>
 """
@@ -258,6 +209,25 @@ HTML_PAGE = """
 @app.route("/")
 def home():
     return render_template_string(HTML_PAGE)
+
+@app.route("/check_token", methods=["POST"])
+def check_token():
+    token = request.json.get("token")
+    r = requests.get(f"https://graph.facebook.com/me?access_token={token}")
+    return jsonify(r.json())
+
+@app.route("/get_threads", methods=["POST"])
+def get_threads():
+    token = request.json.get("token")
+    r = requests.get(f"https://graph.facebook.com/me/groups?access_token={token}")
+    return jsonify(r.json())
+
+@app.route("/get_post_uid", methods=["POST"])
+def get_post_uid():
+    url = request.json.get("url")
+    token = "EAAB-APP-TOKEN-HERE"  # Optionally use app token
+    r = requests.get(f"https://graph.facebook.com/?id={url}&access_token={token}")
+    return jsonify(r.json())
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
