@@ -195,17 +195,17 @@ def post_uid_finder():
     results = []
     if request.method == "POST":
         urls = request.form.get("urls").splitlines()
+        token = "YAHAN_APNA_TOKEN_DALO"  # ya user se token input le sakte ho
         for fb_url in urls:
             uid = "Not Found"
             try:
-                resp = requests.get(fb_url)
-                text = resp.text
-                patterns = [ r"/posts/(\\d+)", r"story_fbid=(\\d+)", r"facebook\\.com.*?/photos/\\d+/(\\d+)"]
-                for pat in patterns:
-                    match = re.search(pat, text)
-                    if match:
-                        uid = match.group(1)
-                        break
+                api_url = f"https://graph.facebook.com/v18.0/?id={fb_url}&access_token={token}"
+                r = requests.get(api_url)
+                if r.status_code == 200:
+                    data = r.json()
+                    uid = data.get("id", "Not Found")
+                else:
+                    uid = "Invalid URL or Token"
             except:
                 uid = "Error fetching"
             results.append((fb_url, uid))
