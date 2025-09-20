@@ -2,7 +2,6 @@ from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
-# ✅ Your fixed 4 images + custom titles + descriptions
 IMAGES = [
     {
         "url": "https://i.imgur.com/rRXsDFZ.jpeg",
@@ -37,7 +36,7 @@ HTML = """
     html, body {
       margin: 0;
       padding: 0;
-      background: #000;
+      background: linear-gradient(135deg, #7b2ff7, #f107a3);
       height: 100%;
       overflow: hidden;
       font-family: Arial, sans-serif;
@@ -61,11 +60,13 @@ HTML = """
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
       align-items: center;
+      gap: 40px;
+      padding: 20px;
+      justify-content: center;
     }
 
     .card {
-      flex: 0 0 80%;
-      max-width: 80%;
+      flex: 0 0 auto;
       scroll-snap-align: center;
       display: flex;
       align-items: center;
@@ -77,9 +78,8 @@ HTML = """
     }
 
     .card img {
-      width: 100%;
-      height: 80%;
-      object-fit: cover;
+      width: auto;
+      height: 700px; /* ✅ Fixed height */
       border-radius: 20px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.8);
       transition: transform 0.4s ease, box-shadow 0.4s ease, filter 0.4s ease;
@@ -87,42 +87,37 @@ HTML = """
 
     .card:hover img {
       transform: scale(1.03);
-      box-shadow: 0 30px 80px rgba(255,255,255,0.2);
+      box-shadow: 0 30px 80px rgba(255,255,255,0.3);
     }
 
-    /* Click effect (selected card zoom) */
     .card.active img {
       transform: scale(1.08);
-      box-shadow: 0 40px 100px rgba(255,255,255,0.3);
+      box-shadow: 0 40px 100px rgba(255,255,255,0.4);
       filter: brightness(1.1);
     }
 
-    /* Overlay title + description */
     .overlay-text {
       position: absolute;
-      bottom: 15%;
+      bottom: 10%;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.4);
-      padding: 10px 20px;
-      border-radius: 12px;
-      backdrop-filter: blur(6px);
       text-align: center;
     }
 
     .overlay-text h2 {
       margin: 0;
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       font-weight: bold;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
     }
 
     .overlay-text p {
       margin: 5px 0 0 0;
-      font-size: 0.9rem;
-      color: #ddd;
+      font-size: 1rem;
+      color: #f5f5f5;
+      text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
     }
 
-    /* Hide scrollbar for cleaner look */
     .slider::-webkit-scrollbar {
       display: none;
     }
