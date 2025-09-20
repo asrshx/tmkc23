@@ -12,7 +12,6 @@ PANEL_HTML = """
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HENRY-X Panel</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Italic&display=swap');
     body { background: radial-gradient(circle, #050505, #000); display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:2rem; color:#fff; margin:0 }
     header h1 { font-size: 2.5rem; font-weight: bold; letter-spacing: 2px; font-family: sans-serif; color: white; margin-bottom:2rem }
     .container { display:flex; flex-wrap:wrap; gap:2rem; justify-content:center; width:100%; }
@@ -37,8 +36,8 @@ PANEL_HTML = """
       opacity: 0;
       animation: fadeIn 0.6s ease forwards;
       animation-delay: 0.4s;
-      align-self: center; /* ✅ Ye add kiya taaki button center me rahe */
-      margin-top: auto; /* ✅ Button ko bottom push karne ke liye */
+      align-self: center;
+      margin-top: auto;
     }
     .open-btn:hover { transform:scale(1.1); box-shadow:0 0 25px rgba(255,0,0,1); }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
@@ -64,7 +63,7 @@ PANEL_HTML = """
         <button class="open-btn" onclick="event.stopPropagation(); window.open('https://web-post-server.onrender.com/','_blank')">OPEN</button>
       </div>
     </div>
-    <!-- CARD 3 TOKEN CHECKER -->
+    <!-- CARD 3 -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline><source src="https://raw.githubusercontent.com/serverxdt/Approval/main/GOKU%20_%20DRAGON%20BALZZ%20_%20anime%20dragonballz%20dragonballsuper%20goku%20animeedit%20animetiktok.mp4" type="video/mp4"></video>
       <div class="overlay">
@@ -72,7 +71,7 @@ PANEL_HTML = """
         <button class="open-btn" onclick="event.stopPropagation(); window.location.href='/token-checker'">OPEN</button>
       </div>
     </div>
-    <!-- CARD 4 POST UID -->
+    <!-- CARD 4 -->
     <div class="card" onclick="toggleOverlay(this)">
       <video autoplay muted loop playsinline><source src="https://raw.githubusercontent.com/serverxdt/Approval/main/SOLO%20LEVELING.mp4" type="video/mp4"></video>
       <div class="overlay">
@@ -86,6 +85,14 @@ PANEL_HTML = """
 </body>
 </html>
 """
+
+TOKEN_CHECKER_HTML = """
+<!DOCTYPE html><html><body><h2>Token Checker Page</h2></body></html>
+"""  # Placeholder, apna actual HTML yaha daalo
+
+POST_UID_HTML = """
+<!DOCTYPE html><html><body><h2>Post UID Finder</h2></body></html>
+"""  # Placeholder, apna actual HTML yaha daalo
 
 @app.route("/")
 def home():
@@ -133,7 +140,7 @@ def post_uid_finder():
     results = []
     if request.method == "POST":
         urls = request.form.get("urls").splitlines()
-        token = "YAHAN_APNA_TOKEN_DALO"  # ya user se token input le sakte ho
+        token = "YAHAN_APNA_TOKEN_DALO"
         for fb_url in urls:
             uid = "Not Found"
             try:
@@ -148,8 +155,6 @@ def post_uid_finder():
                 uid = "Error fetching"
             results.append((fb_url, uid))
     return render_template_string(POST_UID_HTML, results=results)
-@
-# (rest of token-checker, get-threads, post-uid-finder routes same as before...)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
