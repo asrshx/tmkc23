@@ -1,14 +1,29 @@
-# app.py
 from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
-# ✅ Your fixed 4 images
+# ✅ Your fixed 4 images + titles + descriptions
 IMAGES = [
-    'https://i.imgur.com/rRXsDFZ.jpeg',
-    'https://i.imgur.com/IQ62SNS.jpeg',
-    'https://i.imgur.com/FSt80dB.jpeg',
-    'https://i.imgur.com/e9wxOTb.jpeg',
+    {
+        "url": "https://i.imgur.com/rRXsDFZ.jpeg",
+        "title": "Card 1",
+        "desc": "This is the first image in the castle."
+    },
+    {
+        "url": "https://i.imgur.com/IQ62SNS.jpeg",
+        "title": "Card 2",
+        "desc": "This is the second image in the castle."
+    },
+    {
+        "url": "https://i.imgur.com/FSt80dB.jpeg",
+        "title": "Card 3",
+        "desc": "This is the third image in the castle."
+    },
+    {
+        "url": "https://i.imgur.com/e9wxOTb.jpeg",
+        "title": "Card 4",
+        "desc": "This is the fourth image in the castle."
+    },
 ]
 
 HTML = """
@@ -25,35 +40,61 @@ HTML = """
       background: #000;
       height: 100%;
       overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      margin: 10px 0 5px 0;
+      letter-spacing: 2px;
+      color: #f24c4c;
     }
 
     .slider {
       display: flex;
-      height: 100%;
-      width: 100%;
+      flex: 1;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
+      align-items: center;
     }
 
     .card {
-      flex: 0 0 100%;
-      height: 80%;
+      flex: 0 0 80%;
+      max-width: 80%;
       scroll-snap-align: center;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
-      transition: transform 0.5s ease, box-shadow 0.4s ease, filter 0.4s ease;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    .card h2 {
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+      letter-spacing: 1px;
+      color: #ffcc70;
     }
 
     .card img {
-      width: 90%;
-      height: 90%;
+      width: 80%;
+      height: 70%;
       object-fit: cover;
       border-radius: 20px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.8);
       transition: transform 0.5s ease, box-shadow 0.4s ease, filter 0.4s ease;
+    }
+
+    .card p {
+      margin-top: 8px;
+      font-size: 1rem;
+      color: #ccc;
     }
 
     /* Hover effect only for desktop */
@@ -73,16 +114,27 @@ HTML = """
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+
+    .footer {
+      text-align: center;
+      font-size: 0.9rem;
+      margin: 10px 0;
+      color: #888;
+    }
   </style>
 </head>
 <body>
+  <h1>DEMON SLAYER - INFINITY CASTLE</h1>
   <div class="slider">
-    {% for url in images %}
+    {% for img in images %}
     <div class="card">
-      <img src="{{ url }}" alt="card {{ loop.index }}" />
+      <h2>{{ img.title }}</h2>
+      <img src="{{ img.url }}" alt="card {{ loop.index }}" />
+      <p>{{ img.desc }}</p>
     </div>
     {% endfor %}
   </div>
+  <div class="footer">THIS TOOL CREATED FOR AKAZA</div>
 </body>
 </html>
 """
