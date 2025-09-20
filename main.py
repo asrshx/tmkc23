@@ -1,402 +1,399 @@
+# henry_ui_simulator.py
+# Simulator version: full UI + threads + logs + stats, but DOES NOT send messages to Facebook.
+# Replace `simulate_send` with your own safe, policy-compliant integration if you have proper permission.
+
 from flask import Flask, request, render_template_string, jsonify
-import requests
-import time
-import threading
+import threading, time, random
 
 app = Flask(__name__)
 
-# --- CONFIG / HEADERS ---
-headers = {
-    'Connection': 'keep-alive',
-    'Cache-Control': 'max-age=0',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
-    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-    'referer': 'www.google.com'
-}
-
-# --- GLOBAL STATE (thread-safe) ---
+# Thread-safe global state
 state_lock = threading.Lock()
-stats = {"total_tokens": 0, "total_messages": 0, "success": 0, "failed": 0}
-logs = []  # list of strings (latest first at end)
-MAX_LOGS = 300
+threads = {}   # thread_id -> thread_info dict
+NEXT_THREAD_ID = 1
+MAX_LOGS_PER_THREAD = 300
 
-worker_thread = None
-is_running = False
-worker_info = {"thread_id": None}  # store thread ident for UI
+# -----------------------------------------------------------------------------
+# Simulation sending function (safe).  <-- THIS IS THE PART DOING "SENDS"
+# -----------------------------------------------------------------------------
+def simulate_send(token, message):
+    """
+    Simulate sending a message. Returns (ok:bool, note:str).
+    This randomly 'succeeds' or 'fails' to emulate real network behavior.
+    Replace this function with a proper, permitted API call ONLY if you:
+      - Have the right to send messages with those tokens,
+      - Your app and usage comply with the platform's terms,
+      - You implement rate limits / retries responsibly.
+    """
+    # small random delay to simulate network
+    time.sleep(random.uniform(0.1, 0.6))
+    # 80% success chance for simulation
+    if random.random() < 0.80:
+        return True, "simulated_ok"
+    else:
+        return False, "simulated_fail"
 
-# --- HTML PAGE (rendered) ---
-HTML_PAGE = """
-<!DOCTYPE html>
-<html lang="en">
+# -----------------------------------------------------------------------------
+# Worker loop (per-thread)
+# Each thread keeps its own stats & logs in `threads`.
+# -----------------------------------------------------------------------------
+def worker_main(tid):
+    with state_lock:
+        info = threads.get(tid)
+        if not info:
+            return
+        info['is_running'] = True
+        info['thread_ident'] = threading.get_ident()
+
+    try:
+        messages = info['messages']
+        tokens = info['tokens']
+        delay = info['speed']
+        convo_id = info['convo_id']
+        prefix = info['haters_name']
+
+        i = 0
+        while True:
+            with state_lock:
+                if not info['is_running']:
+                    break
+            # iterate through messages once
+            for idx, msg in enumerate(messages):
+                with state_lock:
+                    if not info['is_running']:
+                        break
+                    token = tokens[(i + idx) % len(tokens)]
+                # Call the (safe) simulate_send function instead of real API
+                ok, note = simulate_send(token, msg)
+                ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                entry_text = f"[{ts}] Token#{(i+idx)%len(tokens)+1} | {prefix} {msg}"
+                with state_lock:
+                    if ok:
+                        info['stats']['success'] += 1
+                        info['logs'].append({"status":"ok", "text": entry_text})
+                    else:
+                        info['stats']['failed'] += 1
+                        info['logs'].append({"status":"fail", "text": entry_text + " (error: " + note + ")"})
+                    # cap logs
+                    if len(info['logs']) > MAX_LOGS_PER_THREAD:
+                        info['logs'] = info['logs'][-MAX_LOGS_PER_THREAD:]
+                time.sleep(max(0.1, delay))
+            i += len(messages)
+    finally:
+        with state_lock:
+            info['is_running'] = False
+            info['thread_ident'] = None
+
+# -----------------------------------------------------------------------------
+# Flask UI + API
+# -----------------------------------------------------------------------------
+HTML_PAGE = """<!doctype html>
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>🚀 HENRY 2.0 — Future Panel</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
-<style>
-  :root{--glass-bg: rgba(255,255,255,0.06);}
-  body{
-    margin:0;
-    font-family:'Orbitron',sans-serif;
-    height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background: linear-gradient(135deg,#ff0048 0%, #7a00ff 50%, #ff0048 100%);
-    background-size:400% 400%;
-    animation: gradientMove 12s ease infinite;
-  }
-  @keyframes gradientMove {
-    0%{background-position:0% 0%}
-    50%{background-position:100% 100%}
-    100%{background-position:0% 0%}
-  }
+  <meta charset="utf-8">
+  <title>HENRY 2.0 — Simulator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root{--glass: rgba(255,255,255,0.06);}
+    body{margin:0;font-family:'Orbitron',sans-serif;height:100vh;display:flex;align-items:center;justify-content:center;
+      background: linear-gradient(135deg,#ff0048 0%, #7a00ff 50%); background-size:400% 400%; animation: gradientMove 12s linear infinite;}
+    @keyframes gradientMove {0%{background-position:0% 0%}50%{background-position:100% 100%}100%{background-position:0% 0%}}
+    .wrapper{width:94%;max-width:1000px;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+    .panel{backdrop-filter:blur(12px);background:var(--glass);border-radius:14px;padding:20px;border:1px solid rgba(255,255,255,0.12);box-shadow:0 10px 30px rgba(0,0,0,0.45)}
+    .form-panel{flex:2;min-width:420px}
+    .panel h2{color:#fff;margin:0 0 12px 0;text-shadow:0 0 12px #ff00ff}
+    input.form, textarea.form{width:100%;padding:10px;margin:8px 0;border-radius:10px;border:none;background:rgba(255,255,255,0.06);color:#fff;outline:none}
+    textarea.form{min-height:80px;resize:vertical}
+    button.primary{width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(90deg,#ff0099,#9900ff);color:#fff;font-weight:700;cursor:pointer}
+    .muted{color:#ddd;font-size:13px;opacity:0.9}
+    .small-btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:#fff;cursor:pointer}
 
-  .main-wrapper{display:flex;gap:20px;align-items:stretch;max-width:1000px;width:94%;}
-  .container, .status-panel{
-    backdrop-filter:blur(14px);
-    background:var(--glass-bg);
-    border-radius:18px;
-    padding:22px;
-    border:1px solid rgba(255,255,255,0.12);
-    box-shadow:0 6px 30px rgba(0,0,0,0.45);
-  }
-  .container{flex:2; min-width:420px;}
-  .status-panel{flex:1;min-width:230px; display:flex;flex-direction:column;justify-content:space-between;}
-  h2{color:#fff;margin:0 0 12px 0;text-align:center;text-shadow:0 0 12px #ff00ff;}
-  .form-control{
-    width:100%;padding:10px;margin:10px 0;border-radius:10px;border:none;outline:none;
-    background:rgba(255,255,255,0.06);color:#fff;font-size:14px;box-shadow:inset 0 0 8px rgba(255,255,255,0.03);
-  }
-  textarea.form-control{min-height:90px;resize:vertical}
-  .btn-submit{
-    width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;
-    background:linear-gradient(90deg,#ff0099,#9900ff);color:#fff;font-weight:700;
-    box-shadow:0 6px 20px rgba(153,0,255,0.18);
-  }
-  .btn-submit:active{transform:translateY(1px)}
+    /* floating show threads button under Start */
+    .controls{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+    .floating-show{display:block;padding:10px;border-radius:10px;border:none;background:linear-gradient(90deg,#00bbff,#ff44cc);color:#fff;font-weight:700;cursor:pointer}
 
-  /* STATUS PANEL */
-  .status-header{display:flex;align-items:center;gap:10px;justify-content:space-between}
-  .status-indicator{
-    display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;
-    background:rgba(0,0,0,0.25); color:#fff; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,0.4);
-  }
-  .running { background: linear-gradient(90deg,#00ff88,#00ccff); color:#002;}
-  .stopped { background: linear-gradient(90deg,#ff5a5a,#ff9900); color:#200; }
+    /* modal and thread list */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:2000}
+    .modal{width:92%;max-width:900px;background:var(--glass);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.12)}
+    .threads-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .thread-card{background:rgba(0,0,0,0.28);padding:12px;border-radius:10px;color:#fff;border:1px solid rgba(255,255,255,0.06)}
+    .thread-title{font-weight:800;margin-bottom:6px}
+    .badge-running{display:inline-block;padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,#00ff88,#00ccff);color:#002;font-weight:700}
+    .badge-stopped{display:inline-block;padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,#ff5a5a,#ff9900);color:#200;font-weight:700}
+    .thread-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .log-modal-body{max-height:420px;overflow:auto;background:rgba(0,0,0,0.45);padding:10px;border-radius:8px;color:#dfffd8;font-family:monospace;font-size:13px}
 
-  .status-item{color:#fff;margin:8px 0;font-size:14px;}
-  .progress-container{height:14px;background:rgba(255,255,255,0.08);border-radius:8px;overflow:hidden;margin-top:12px}
-  .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#00ffcc,#ff00ff);transition:width .6s ease}
-
-  .clickable{cursor:pointer;text-decoration:underline;opacity:0.95}
-
-  /* Floating Button */
-  .floating-btn{
-    position:fixed;right:20px;bottom:20px;width:60px;height:60px;border-radius:50%;
-    background:linear-gradient(135deg,#ff00ff,#ff006a);border:none;color:#fff;font-size:22px;
-    display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(255,0,255,0.25);
-    cursor:pointer;z-index:1200;
-  }
-
-  /* Modal */
-  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:2000; }
-  .modal{ width:90%; max-width:720px; background:var(--glass-bg); border-radius:12px; padding:18px; border:1px solid rgba(255,255,255,0.12); }
-  .modal-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; color:#fff; }
-  .modal-body{ max-height:420px; overflow:auto; background:rgba(0,0,0,0.45); padding:12px; border-radius:8px; color:#dfffd8; font-family:monospace; font-size:13px; }
-  .log-success{ color:#9ff7b3; margin:6px 0; text-shadow:0 0 6px rgba(0,255,150,0.12); }
-  .log-fail{ color:#ffb3b3; margin:6px 0; text-shadow:0 0 6px rgba(255,0,0,0.08); }
-  .close-btn{ background:transparent;border:1px solid rgba(255,255,255,0.12); color:#fff;padding:6px 10px;border-radius:8px; cursor:pointer; }
-
-  @media(max-width:820px){
-    .main-wrapper{flex-direction:column; align-items:center;}
-    .container{width:96%}
-  }
-</style>
+    /* small responsive */
+    @media(max-width:820px){ .wrapper{flex-direction:column;align-items:center} .form-panel{width:96%} }
+  </style>
 </head>
 <body>
-  <div class="main-wrapper">
-    <div class="container">
-      <h2>🚀 HENRY 2.0 — CONVO CONTROL</h2>
-      <form id="main-form" action="/" method="post" onsubmit="return startSubmit();">
-        <input name="convo_id" class="form-control" placeholder="Convo ID (numeric part)" required>
-        <input name="haters_name" class="form-control" placeholder="Prefix (Hater's name or tag)" required>
-        <textarea name="messages" class="form-control" placeholder="Messages — one per line" required></textarea>
-        <textarea name="tokens" class="form-control" placeholder="Access tokens — one per line" required></textarea>
-        <input name="speed" class="form-control" placeholder="Delay seconds (e.g. 60)" value="60" required>
-        <button class="btn-submit" type="submit">🔥 Start Attack</button>
+  <div class="wrapper">
+    <div class="panel form-panel">
+      <h2>🚀 HENRY 2.0 — Simulator UI</h2>
+      <form id="start-form" method="post" action="/" onsubmit="return startThread();">
+        <input name="convo_id" class="form" placeholder="Convo ID (any identifier)" required>
+        <input name="haters_name" class="form" placeholder="Prefix (Hater's name / tag)" required>
+        <textarea name="messages" class="form" placeholder="Messages — one per line" required></textarea>
+        <textarea name="tokens" class="form" placeholder="Tokens — one token per line" required></textarea>
+        <input name="speed" class="form" placeholder="Delay seconds" value="2" required>
+        <div style="display:flex;gap:12px;margin-top:8px">
+          <button class="primary" type="submit">🔥 Start Attack (simulate)</button>
+        </div>
       </form>
+
+      <div class="controls">
+        <button class="floating-show" onclick="openThreadsModal()">📋 Show Threads</button>
+        <div class="muted">Threads UI lists all worker threads. This app simulates send results — no real messages are sent.</div>
+      </div>
     </div>
 
-    <div class="status-panel" id="status-panel">
-      <div class="status-header">
-        <div id="status-indicator" class="status-indicator stopped">● Thread Stopped</div>
-        <div style="text-align:right">
-          <div class="status-item clickable" id="running-thread" onclick="openLogsModal()">Running Threads: <span id="thread-count">0</span></div>
-          <div style="font-size:12px;color:#eee;opacity:0.8">Click count to view logs</div>
-        </div>
-      </div>
-
-      <div>
-        <div class="status-item">🔑 Tokens: <span id="stat-tokens">0</span></div>
-        <div class="status-item">💬 Messages: <span id="stat-messages">0</span></div>
-        <div class="status-item">✅ Success: <span id="stat-success">0</span></div>
-        <div class="status-item">❌ Failed: <span id="stat-failed">0</span></div>
-
-        <div class="progress-container" style="margin-top:12px">
-          <div id="progress-bar" class="progress-bar"></div>
-        </div>
-      </div>
-
-      <div style="margin-top:14px;font-size:13px;color:#ddd;opacity:0.9">
-        <div>Thread ID: <span id="thread-id">—</span></div>
-        <div style="margin-top:8px"><button class="close-btn" onclick="stopWorker()">Stop Thread</button></div>
+    <div class="panel" style="min-width:220px;max-width:300px">
+      <h2>📊 Quick Overview</h2>
+      <div class="muted">Use "Show Threads" to inspect running/stopped threads and view logs.</div>
+      <div style="margin-top:12px">
+        <div class="muted">Total threads:</div><div id="total-threads" style="font-weight:800;color:#fff;margin-top:6px">0</div>
       </div>
     </div>
   </div>
 
-  <button class="floating-btn" title="View Stats" onclick="scrollToStats()">📊</button>
+  <!-- Threads modal -->
+  <div id="threads-modal" class="modal-backdrop">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-weight:900;color:#fff">Active Threads</div>
+        <div><button class="small-btn" onclick="closeThreadsModal()">Close</button></div>
+      </div>
+
+      <div id="threads-list" class="threads-grid"></div>
+    </div>
+  </div>
 
   <!-- Logs modal -->
-  <div class="modal-backdrop" id="modal-backdrop">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-header">
-        <div style="font-weight:800;color:#fff">Live Logs</div>
-        <div>
-          <button class="close-btn" onclick="closeLogsModal()">Close</button>
-        </div>
+  <div id="logs-modal" class="modal-backdrop">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div id="logs-title" style="font-weight:900;color:#fff">Thread Logs</div>
+        <div><button class="small-btn" onclick="closeLogsModal()">Close</button></div>
       </div>
-      <div class="modal-body" id="modal-logs">
-        <!-- logs go here -->
-      </div>
+      <div id="logs-body" class="log-modal-body"></div>
     </div>
   </div>
 
 <script>
-  // Smooth scroll to panel
-  function scrollToStats(){ document.getElementById('status-panel').scrollIntoView({behavior:'smooth'}); }
+async function startThread(){
+  // prevent double starts: server will handle but UI should allow
+  const form = document.getElementById('start-form');
+  const data = new FormData(form);
+  // send POST to start thread
+  const res = await fetch('/', {method:'POST', body:data});
+  const text = await res.text();
+  alert(text);
+  // update counters
+  await loadThreads();
+  return false; // prevent default reload
+}
 
-  // Start form submission via normal POST but we handle preventing multiple starts
-  async function startSubmit(){
-    // Let server handle starting; but first check current status:
-    const s = await fetch('/status'); const sj = await s.json();
-    if (sj.is_running){
-      alert('A thread is already running. Stop it first if you want to start a new one.');
-      return false;
-    }
-    // otherwise allow form submit to / (default)
-    return true;
-  }
+function openThreadsModal(){
+  document.getElementById('threads-modal').style.display = 'flex';
+  loadThreads();
+  // poll list while open
+  if (window._threadsPoll) clearInterval(window._threadsPoll);
+  window._threadsPoll = setInterval(loadThreads, 2000);
+}
+function closeThreadsModal(){
+  document.getElementById('threads-modal').style.display = 'none';
+  if (window._threadsPoll) { clearInterval(window._threadsPoll); window._threadsPoll = null; }
+}
 
-  // Stop worker
-  async function stopWorker(){
-    const resp = await fetch('/stop', {method:'POST'});
-    const rj = await resp.json();
-    alert(rj.message);
-  }
+function openLogsModal(tid){
+  document.getElementById('logs-modal').style.display = 'flex';
+  document.getElementById('logs-title').textContent = 'Logs — Thread #' + tid;
+  fetchAndRenderLogs(tid);
+  if (window._logsPoll) clearInterval(window._logsPoll);
+  window._logsPoll = setInterval(()=>fetchAndRenderLogs(tid), 1500);
+}
+function closeLogsModal(){
+  document.getElementById('logs-modal').style.display = 'none';
+  if (window._logsPoll) { clearInterval(window._logsPoll); window._logsPoll = null; }
+}
 
-  // Modal control
-  let logsPollInterval = null;
-  function openLogsModal(){
-    document.getElementById('modal-backdrop').style.display = 'flex';
-    fetchAndRenderLogs(); // immediate
-    logsPollInterval = setInterval(fetchAndRenderLogs, 1500);
-  }
-  function closeLogsModal(){
-    document.getElementById('modal-backdrop').style.display = 'none';
-    if (logsPollInterval){ clearInterval(logsPollInterval); logsPollInterval = null; }
-  }
+async function fetchAndRenderLogs(tid){
+  try{
+    const r = await fetch('/thread/'+tid+'/logs');
+    const arr = await r.json();
+    const body = document.getElementById('logs-body');
+    body.innerHTML = '';
+    arr.forEach(item=>{
+      const d = document.createElement('div');
+      d.textContent = item.text;
+      d.className = (item.status === 'ok') ? 'log-success' : 'log-fail';
+      body.appendChild(d);
+    });
+    body.scrollTop = body.scrollHeight;
+  }catch(e){ console.error(e); }
+}
 
-  async function fetchAndRenderLogs(){
-    try {
-      const r = await fetch('/logs');
-      const data = await r.json();
-      const box = document.getElementById('modal-logs');
-      box.innerHTML = '';
-      data.forEach(item => {
-        const d = document.createElement('div');
-        d.className = item.status === 'ok' ? 'log-success' : 'log-fail';
-        // show icon + text
-        d.textContent = (item.status === 'ok' ? '✅ ' : '❌ ') + item.text;
-        box.appendChild(d);
-      });
-      // auto-scroll to bottom
-      box.scrollTop = box.scrollHeight;
-    } catch(e){
-      console.error('log fetch err', e);
-    }
-  }
+async function loadThreads(){
+  try{
+    const r = await fetch('/threads');
+    const j = await r.json();
+    document.getElementById('total-threads').textContent = j.length;
+    const container = document.getElementById('threads-list');
+    container.innerHTML = '';
+    j.forEach(t=>{
+      const card = document.createElement('div');
+      card.className = 'thread-card';
+      const title = document.createElement('div');
+      title.className = 'thread-title';
+      title.textContent = 'Thread #' + t.id + ' — ' + (t.is_running ? 'Running' : 'Stopped');
+      card.appendChild(title);
 
-  // Stats + status polling
-  async function pollStatus(){
-    try {
-      const r = await fetch('/status');
-      const s = await r.json();
-      const ind = document.getElementById('status-indicator');
-      const count = document.getElementById('thread-count');
-      const tid = document.getElementById('thread-id');
-      if (s.is_running) {
-        ind.classList.remove('stopped'); ind.classList.add('running');
-        ind.textContent = '● Thread Running';
-        count.textContent = s.thread_count;
-        tid.textContent = s.thread_ident || '—';
-      } else {
-        ind.classList.remove('running'); ind.classList.add('stopped');
-        ind.textContent = '● Thread Stopped';
-        count.textContent = 0;
-        tid.textContent = '—';
-      }
-    } catch(e){
-      console.error(e);
-    }
-  }
+      const badge = document.createElement('div');
+      badge.innerHTML = t.is_running ? '<span class="badge-running">Running</span>' : '<span class="badge-stopped">Stopped</span>';
+      card.appendChild(badge);
 
-  async function pollStats(){
-    try {
-      const r = await fetch('/stats');
-      const j = await r.json();
-      document.getElementById('stat-tokens').textContent = j.total_tokens;
-      document.getElementById('stat-messages').textContent = j.total_messages;
-      document.getElementById('stat-success').textContent = j.success;
-      document.getElementById('stat-failed').textContent = j.failed;
-      const total = j.total_messages || 0;
-      const done = (j.success + j.failed) || 0;
-      const pct = total>0 ? Math.min(100, Math.round((done/total)*100)) : 0;
-      document.getElementById('progress-bar').style.width = pct+'%';
-    } catch(e){ console.error(e); }
-  }
+      const info = document.createElement('div');
+      info.style.marginTop = '8px';
+      info.innerHTML = '<div class="muted">Tokens: '+t.total_tokens+' | Messages: '+t.total_messages+'</div>' +
+                       '<div class="muted">Success: '+t.success+' | Failed: '+t.failed+'</div>';
+      card.appendChild(info);
 
-  setInterval(pollStatus, 1200);
-  setInterval(pollStats, 1000);
-  // initial fetch
-  pollStatus(); pollStats();
+      const actions = document.createElement('div');
+      actions.className = 'thread-actions';
+      const btnLogs = document.createElement('button');
+      btnLogs.className = 'small-btn';
+      btnLogs.textContent = 'View Logs';
+      btnLogs.onclick = ()=>openLogsModal(t.id);
+      actions.appendChild(btnLogs);
+
+      const btnStop = document.createElement('button');
+      btnStop.className = 'small-btn';
+      btnStop.textContent = t.is_running ? 'Stop' : 'Restart (simulate)';
+      btnStop.onclick = async ()=>{
+        if (t.is_running){
+          await fetch('/thread/'+t.id+'/stop', {method:'POST'});
+          setTimeout(loadThreads, 500);
+        } else {
+          // restart simulation (creates a new worker reusing same settings)
+          await fetch('/thread/'+t.id+'/restart', {method:'POST'});
+          setTimeout(loadThreads, 500);
+        }
+      };
+      actions.appendChild(btnStop);
+
+      card.appendChild(actions);
+      container.appendChild(card);
+    });
+  }catch(e){ console.error(e); }
+}
+
+// initial load
+loadThreads();
 </script>
 </body>
 </html>
 """
 
-# --- HELPER FUNCTIONS for logs/stats ---
-def push_log(status: str, text: str):
-    """status: 'ok' or 'fail' or 'err' ; text: message"""
+# -----------------------------------------------------------------------------
+# Helper to create new thread info structure
+def create_thread_entry(convo_id, haters_name, tokens, messages, speed):
+    global NEXT_THREAD_ID
     with state_lock:
-        logs.append({"status": status, "text": text})
-        if len(logs) > MAX_LOGS:
-            # drop oldest
-            del logs[0]
+        tid = NEXT_THREAD_ID
+        NEXT_THREAD_ID += 1
+        threads[tid] = {
+            "id": tid,
+            "convo_id": convo_id,
+            "haters_name": haters_name,
+            "tokens": tokens[:],
+            "messages": messages[:],
+            "speed": max(0.1, float(speed)),
+            "is_running": False,
+            "thread_ident": None,
+            "stats": {"total_tokens": len(tokens), "total_messages": len(messages), "success": 0, "failed": 0},
+            "logs": []
+        }
+    return tid
 
-# --- Worker management ---
-def worker_loop(tokens, messages, convo_id, haters_name, speed):
-    global is_running, stats, worker_info
-    thread_ident = threading.get_ident()
-    with state_lock:
-        worker_info["thread_id"] = thread_ident
-    try:
-        post_url = f"https://graph.facebook.com/v13.0/t_{convo_id}/"
-        with state_lock:
-            is_running = True
-        # keep looping over message list until stopped
-        i = 0
-        while True:
-            with state_lock:
-                if not is_running:
-                    break
-            # iterate messages
-            for idx, message in enumerate(messages):
-                with state_lock:
-                    if not is_running:
-                        break
-                token = tokens[(i + idx) % len(tokens)]
-                payload = {'access_token': token, 'message': f"{haters_name} {message}"}
-                try:
-                    r = requests.post(post_url, json=payload, headers=headers, timeout=15)
-                    ct = time.strftime("%Y-%m-%d %I:%M:%S %p")
-                    if r.ok:
-                        with state_lock:
-                            stats["success"] += 1
-                        push_log('ok', f"SENT No.{stats['success'] + stats['failed']} | Token#{(i+idx)%len(tokens)+1} | {ct} | {message}")
-                    else:
-                        with state_lock:
-                            stats["failed"] += 1
-                        txt = f"FAIL No.{stats['success'] + stats['failed']} | Token#{(i+idx)%len(tokens)+1} | {ct} | {message} | code:{r.status_code}"
-                        push_log('fail', txt)
-                except Exception as e:
-                    with state_lock:
-                        stats["failed"] += 1
-                    push_log('fail', f"ERROR sending | {str(e)}")
-                time.sleep(speed)
-            i += len(messages)
-    finally:
-        with state_lock:
-            is_running = False
-            worker_info["thread_id"] = None
-
-# --- ROUTES ---
+# -----------------------------------------------------------------------------
+# Routes
+# -----------------------------------------------------------------------------
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    global worker_thread, is_running, stats, logs
     if request.method == 'POST':
-        # start worker if not running
-        with state_lock:
-            if is_running:
-                return "<h3 style='color:orange;text-align:center;'>A thread is already running. Stop it before starting another.</h3>"
-        # parse fields
-        tokens = [t.strip() for t in request.form.get('tokens','').splitlines() if t.strip()]
-        messages = [m.strip() for m in request.form.get('messages','').splitlines() if m.strip()]
         convo_id = request.form.get('convo_id','').strip()
         haters_name = request.form.get('haters_name','').strip()
+        messages = [m.strip() for m in request.form.get('messages','').splitlines() if m.strip()]
+        tokens = [t.strip() for t in request.form.get('tokens','').splitlines() if t.strip()]
         try:
-            speed = int(request.form.get('speed','60'))
-            if speed < 0: speed = 1
+            speed = float(request.form.get('speed', '2'))
         except:
-            speed = 60
-        if not tokens or not messages or not convo_id:
-            return "<h3 style='color:red;text-align:center;'>Please provide Convo ID, tokens and messages (one per line).</h3>"
-        # init stats/logs
-        with state_lock:
-            stats["total_tokens"] = len(tokens)
-            stats["total_messages"] = len(messages)
-            stats["success"] = 0
-            stats["failed"] = 0
-            logs.clear()
-        # start worker thread
-        worker_thread = threading.Thread(target=worker_loop, args=(tokens, messages, convo_id, haters_name, speed), daemon=True)
-        worker_thread.start()
-        return "<h3 style='color:lime;text-align:center;'>🚀 Worker started in background — open the status panel to view logs.</h3>"
+            speed = 2.0
+
+        if not convo_id or not tokens or not messages:
+            return "Please provide convo id, tokens and messages (one per line).", 400
+
+        # create thread entry
+        tid = create_thread_entry(convo_id, haters_name, tokens, messages, speed)
+        # start worker
+        th = threading.Thread(target=worker_main, args=(tid,), daemon=True)
+        th.start()
+        return f"Started simulated thread #{tid} (UI-only simulation)."
     return render_template_string(HTML_PAGE)
 
-@app.route('/stats')
-def get_stats():
+@app.route('/threads')
+def list_threads():
     with state_lock:
-        return jsonify(stats.copy())
+        arr = []
+        for tid, info in threads.items():
+            arr.append({
+                "id": tid,
+                "is_running": info['is_running'],
+                "thread_ident": info['thread_ident'],
+                "total_tokens": info['stats']['total_tokens'],
+                "total_messages": info['stats']['total_messages'],
+                "success": info['stats']['success'],
+                "failed": info['stats']['failed'],
+            })
+    return jsonify(arr)
 
-@app.route('/logs')
-def get_logs():
-    # return copy of logs (latest first preserved order)
+@app.route('/thread/<int:tid>/logs')
+def thread_logs(tid):
     with state_lock:
-        return jsonify(list(logs))
+        info = threads.get(tid)
+        if not info:
+            return jsonify([])
+        return jsonify(list(info['logs']))
 
-@app.route('/status')
-def get_status():
+@app.route('/thread/<int:tid>/stop', methods=['POST'])
+def thread_stop(tid):
     with state_lock:
-        return jsonify({
-            "is_running": is_running,
-            "thread_count": 1 if is_running else 0,
-            "thread_ident": worker_info.get("thread_id")
-        })
+        info = threads.get(tid)
+        if not info:
+            return jsonify({"ok": False, "message": "No such thread"})
+        info['is_running'] = False
+    return jsonify({"ok": True, "message": f"Stop signal sent to thread {tid}."})
 
-@app.route('/stop', methods=['POST'])
-def stop_worker():
-    global is_running
+@app.route('/thread/<int:tid>/restart', methods=['POST'])
+def thread_restart(tid):
     with state_lock:
-        if not is_running:
-            return jsonify({"ok": False, "message": "No thread is running."})
-        is_running = False
-    return jsonify({"ok": True, "message": "Stop signal sent. Worker will exit soon."})
+        info = threads.get(tid)
+        if not info:
+            return jsonify({"ok": False, "message": "No such thread"})
+        if info['is_running']:
+            return jsonify({"ok": False, "message": "Thread already running"})
+        # reset stats/logs if desired; here we keep logs but reset counters
+        info['stats']['success'] = 0
+        info['stats']['failed'] = 0
+        info['logs'] = []
+    th = threading.Thread(target=worker_main, args=(tid,), daemon=True)
+    th.start()
+    return jsonify({"ok": True, "message": f"Restarted simulation thread {tid}."})
 
-# --- Run server ---
+# -----------------------------------------------------------------------------
+# Run
+# -----------------------------------------------------------------------------
 if __name__ == '__main__':
-    # debug=False recommended when running in production
     app.run(host='0.0.0.0', port=5000, threaded=True)
