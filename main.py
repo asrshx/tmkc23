@@ -177,7 +177,7 @@ def get_threads():
         return jsonify({"error": "No token provided"})
     try:
         threads = []
-        url = f"https://graph.facebook.com/v17.0/me/conversations?fields=id,name={token}"
+        url = f"https://graph.facebook.com/v18.0/me/conversations?fields=id,name&access_token=YOUR_TOKEN"
         while url:
             r = requests.get(url)
             if r.status_code != 200:
