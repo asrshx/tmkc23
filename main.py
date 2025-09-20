@@ -21,9 +21,39 @@ PANEL_HTML = """
     .card video { width:100%; height:100%; object-fit:cover; filter:brightness(0.85); }
     .overlay { position:absolute; bottom:-100%; left:0; width:100%; height:100%; background:linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%); display:flex; flex-direction:column; justify-content:flex-end; padding:25px; opacity:0; transition:all 0.4s ease-in-out; }
     .card.active .overlay { bottom:0; opacity:1; }
-    .overlay h3 { font-family:"Russo One", sans-serif; font-size:28px; margin-bottom:10px; text-shadow:0 0 15px #ff0033; color:#fff; }
-    .overlay p { font-family:'Fira Sans Italic', sans-serif; font-size:15px; color:#f2f2f2; margin-bottom:15px; opacity:0; animation:fadeIn 0.6s ease forwards; animation-delay:0.2s; }
-    .open-btn { align-self:center; background:linear-gradient(45deg,#ff0040,#ff1a66); border:none; padding:10px 25px; border-radius:25px; font-size:16px; color:white; cursor:pointer; font-family:"Russo One",sans-serif; box-shadow:0 0 15px rgba(255,0,0,0.7); transition:all 0.3s ease; opacity:0; animation:fadeIn 0.6s ease forwards; animation-delay:0.4s; }
+    .overlay h3 { font-family:"Russo One", sans-serif; font-size:28px; margin-bottom:10px; text-shadow:0 0 15px #ff0033; color:#fff; 
+.overlay p {
+  position: absolute;
+  bottom: -100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;  /* ✅ Ye line add ki */
+  padding: 25px;
+  opacity: 0;
+  transition: all 0.4s ease-in-out;
+}
+.open-btn {
+  align-self: center;  /* ✅ Ye line hata do */
+  background: linear-gradient(45deg,#ff0040,#ff1a66);
+  border: none;
+  padding: 10px 25px;
+  border-radius: 25px;
+  font-size: 16px;
+  color: white;
+  cursor: pointer;
+  font-family: "Russo One",sans-serif;
+  box-shadow: 0 0 15px rgba(255,0,0,0.7);
+  transition: all 0.3s ease;
+  opacity: 0;
+  animation: fadeIn 0.6s ease forwards;
+  animation-delay: 0.4s;
+}
+</style>
     .open-btn:hover { transform:scale(1.1); box-shadow:0 0 25px rgba(255,0,0,1); }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
     footer { margin-top:2rem; font-size:1rem; font-family:sans-serif; color:#888; text-align:center; }
