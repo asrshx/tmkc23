@@ -60,8 +60,8 @@ HTML = """
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
       align-items: center;
-      gap: 40px;
-      padding: 20px;
+      gap: 60px; /* ✅ Thoda zyada gap for balance */
+      padding: 20px 40px;
       justify-content: center;
     }
 
@@ -75,11 +75,13 @@ HTML = """
       margin: 0 auto;
       transition: transform 0.4s ease, box-shadow 0.4s ease;
       cursor: pointer;
+      max-width: 600px; /* ✅ Perfect balanced width */
     }
 
     .card img {
-      width: auto;
-      height: 700px; /* ✅ Fixed height */
+      width: 100%;
+      max-height: 700px;
+      object-fit: cover;
       border-radius: 20px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.8);
       transition: transform 0.4s ease, box-shadow 0.4s ease, filter 0.4s ease;
@@ -98,15 +100,16 @@ HTML = """
 
     .overlay-text {
       position: absolute;
-      bottom: 10%;
+      bottom: 8%;
       left: 50%;
       transform: translateX(-50%);
       text-align: center;
+      width: 90%;
     }
 
     .overlay-text h2 {
       margin: 0;
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       font-weight: bold;
       text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
     }
@@ -131,6 +134,19 @@ HTML = """
       font-size: 0.9rem;
       margin: 10px 0;
       color: #fff;
+    }
+
+    /* ✅ Responsive - Mobile ke liye better layout */
+    @media (max-width: 768px) {
+      .card {
+        max-width: 90%;
+      }
+      .card img {
+        max-height: 500px;
+      }
+      .overlay-text h2 {
+        font-size: 1.4rem;
+      }
     }
   </style>
 </head>
