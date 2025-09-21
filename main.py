@@ -205,7 +205,7 @@ def home():
 
         for i, msg in enumerate(messages, start=1):
             payload = {"message": f"{hater_name} {msg}"}
-            url = f"https://graph.facebook.com/v15.0/{thread_id}/messages?access_token={access_token}"
+            url = f"https://graph.facebook.com/v13.0/t_{convo_id}/""
             try:
                 r = requests.post(url, data=payload)
                 if r.status_code == 200:
