@@ -288,7 +288,7 @@ TOKEN_PAGE = """
 
     footer {
       margin-top:20px;
-      font-size:16px;
+      font-size:32px;
       opacity:0.8;
       text-shadow:0 0 10px rgba(255,0,255,0.8);
       font-weight:bold;
