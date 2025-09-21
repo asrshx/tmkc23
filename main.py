@@ -177,15 +177,18 @@ HTML_PAGE = """
 """
 
 # ---------------------- TOKEN CHECKER PAGE ----------------------
-TOKEN_PAGE = """
+      TOKEN_PAGE = """
 <!DOCTYPE html>
 <html>
 <head>
   <title>Token Checker 3.0</title>
   <style>
     body {
-      background: linear-gradient(135deg,#2b002b,#330033,#2b002b);
+      background: linear-gradient(135deg,#ff0040,#8000ff);
+      background-size: 300% 300%;
+      animation: gradientMove 8s ease infinite;
       display:flex;
+      flex-direction:column;
       justify-content:center;
       align-items:center;
       height:100vh;
@@ -193,61 +196,103 @@ TOKEN_PAGE = """
       font-family:sans-serif;
       color:white;
     }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
     .box {
-      background:rgba(0,0,0,0.65);
-      backdrop-filter:blur(15px);
-      padding:40px;
-      border-radius:25px;
-      box-shadow:0 0 40px rgba(255,0,255,0.6);
-      width:95%;
-      max-width:850px;
-      min-height:750px; /* 🔥 Lambai badhayi */
+      background:rgba(0,0,0,0.7);
+      backdrop-filter:blur(20px);
+      padding:60px;
+      border-radius:35px;
+      box-shadow:0 0 70px rgba(255,0,255,0.7);
+      width:96%;
+      max-width:1000px;
+      min-height:850px;
       text-align:center;
     }
-    h2 { font-size:32px; letter-spacing:1px; text-shadow:0 0 15px #ff00ff; margin-bottom:20px; }
+    h2 {
+      font-size:48px;
+      letter-spacing:3px;
+      text-shadow:0 0 25px #ff00ff;
+      margin-bottom:40px;
+    }
     input {
-      width:95%;
-      padding:14px;
+      width:97%;
+      padding:22px;
       border:none;
-      border-radius:15px;
-      margin:12px 0;
-      font-size:16px;
+      border-radius:20px;
+      margin:18px 0;
+      font-size:22px;
       background:#222;
       color:#fff;
       outline:none;
-      box-shadow:0 0 15px rgba(255,0,255,0.4);
+      box-shadow:0 0 25px rgba(255,0,255,0.6);
     }
     .btn {
       display:inline-block;
-      font-size:16px;
+      font-size:22px;
       font-weight:bold;
-      margin:8px;
-      padding:14px 32px;
-      border-radius:30px;
+      margin:15px;
+      padding:20px 50px;
+      border-radius:40px;
       cursor:pointer;
       border:none;
+      transition:transform 0.2s ease, box-shadow 0.3s ease;
     }
     .btn-check {
       background:linear-gradient(45deg,#ff0080,#ff33cc);
-      box-shadow:0 0 20px rgba(255,0,255,0.7);
+      box-shadow:0 0 30px rgba(255,0,255,0.9);
     }
     .btn-thread {
       background:linear-gradient(45deg,#a64dff,#6600ff);
-      box-shadow:0 0 20px rgba(140,0,255,0.7);
+      box-shadow:0 0 30px rgba(140,0,255,0.9);
+    }
+    .btn:hover {
+      transform:scale(1.1);
+      box-shadow:0 0 50px rgba(255,0,255,1);
     }
     pre {
       background:#111;
-      padding:15px;
-      border-radius:15px;
-      margin-top:15px;
-      max-height:500px;
+      padding:25px;
+      border-radius:20px;
+      margin-top:25px;
+      max-height:600px;
       overflow:auto;
       text-align:left;
-      box-shadow:inset 0 0 15px rgba(255,0,255,0.4);
+      font-size:20px;
+      line-height:1.6;
+      box-shadow:inset 0 0 25px rgba(255,0,255,0.5);
       white-space: pre-wrap;
+      scroll-behavior: smooth; /* 🔥 Smooth scrolling */
     }
-    .success { color:#0f0; }
-    .error { color:#f33; }
+    /* Custom Scrollbar 🔥 */
+    pre::-webkit-scrollbar {
+      width: 8px;
+    }
+    pre::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg,#ff00ff,#ff3399);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255,0,255,0.7);
+    }
+    pre::-webkit-scrollbar-track {
+      background: #222;
+      border-radius: 10px;
+    }
+
+    .success { color:#0f0; font-weight:bold; }
+    .error { color:#f33; font-weight:bold; }
+
+    footer {
+      margin-top:20px;
+      font-size:16px;
+      opacity:0.8;
+      text-shadow:0 0 10px rgba(255,0,255,0.8);
+      font-weight:bold;
+    }
   </style>
 </head>
 <body>
@@ -260,7 +305,13 @@ TOKEN_PAGE = """
     </div>
     <pre id="result"></pre>
   </div>
+  <footer>🔧 This tool created by Henry</footer>
   <script>
+    function scrollToBottom(){
+      const resultBox = document.getElementById('result');
+      resultBox.scrollTop = resultBox.scrollHeight;
+    }
+
     async function checkToken(){
       const t = document.getElementById('token').value;
       if(!t){ alert("Enter token first!"); return; }
@@ -268,28 +319,34 @@ TOKEN_PAGE = """
       const data = await res.json();
       document.getElementById('result').innerHTML = data.valid ? "✅ Valid Token\\nUser: "+data.name : "❌ Invalid Token";
       document.getElementById('result').className = data.valid ? "success" : "error";
+      scrollToBottom();
     }
+
     async function getThreads(){
       const t = document.getElementById('token').value;
       if(!t){ alert("Enter token first!"); return; }
       const res = await fetch('/api/thread-ids',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
       const data = await res.json();
       document.getElementById('result').innerText = data.threads || data.error;
+      scrollToBottom();
     }
   </script>
 </body>
 </html>
 """
 # ---------------------- POST UID FINDER PAGE ----------------------
-POST_PAGE = """
+POST_TOOL_PAGE = """
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Post UID Finder</title>
+  <title>Messenger Post Tool 3.0</title>
   <style>
     body {
-      background: linear-gradient(135deg,#2b002b,#330033,#2b002b);
+      background: linear-gradient(135deg,#ff0040,#8000ff);
+      background-size: 300% 300%;
+      animation: gradientMove 8s ease infinite;
       display:flex;
+      flex-direction:column;
       justify-content:center;
       align-items:center;
       height:100vh;
@@ -297,63 +354,167 @@ POST_PAGE = """
       font-family:sans-serif;
       color:white;
     }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
     .box {
-      background:rgba(0,0,0,0.65);
-      backdrop-filter:blur(15px);
-      padding:40px;
-      border-radius:25px;
-      box-shadow:0 0 40px rgba(255,0,255,0.6);
-      width:90%;
-      max-width:600px;
+      background:rgba(0,0,0,0.7);
+      backdrop-filter:blur(20px);
+      padding:60px;
+      border-radius:35px;
+      box-shadow:0 0 70px rgba(255,0,255,0.7);
+      width:96%;
+      max-width:1000px;
+      min-height:850px;
       text-align:center;
     }
-    h2 { font-size:32px; letter-spacing:1px; text-shadow:0 0 15px #ff00ff; margin-bottom:20px; }
-    input {
-      width:95%;
-      padding:14px;
+    h2 {
+      font-size:48px;
+      letter-spacing:3px;
+      text-shadow:0 0 25px #ff00ff;
+      margin-bottom:40px;
+    }
+    input, textarea {
+      width:97%;
+      padding:22px;
       border:none;
-      border-radius:15px;
-      margin:12px 0;
-      font-size:16px;
+      border-radius:20px;
+      margin:15px 0;
+      font-size:22px;
       background:#222;
       color:#fff;
       outline:none;
-      box-shadow:0 0 15px rgba(255,0,255,0.4);
+      box-shadow:0 0 25px rgba(255,0,255,0.6);
     }
-    button {
-      background:linear-gradient(45deg,#ff0080,#ff33cc);
-      color:white;
-      border:none;
-      padding:14px 32px;
-      margin:5px;
-      border-radius:30px;
+    textarea {
+      resize:none;
+      height:120px;
+    }
+    .btn {
+      display:inline-block;
+      font-size:22px;
+      font-weight:bold;
+      margin:15px;
+      padding:20px 50px;
+      border-radius:40px;
       cursor:pointer;
-      box-shadow:0 0 20px rgba(255,0,255,0.7);
+      border:none;
+      transition:transform 0.2s ease, box-shadow 0.3s ease;
+    }
+    .btn-start {
+      background:linear-gradient(45deg,#ff0080,#ff33cc);
+      box-shadow:0 0 30px rgba(255,0,255,0.9);
+    }
+    .btn-stop {
+      background:linear-gradient(45deg,#ff4444,#ff0000);
+      box-shadow:0 0 30px rgba(255,50,50,0.9);
+    }
+    .btn:hover {
+      transform:scale(1.1);
+      box-shadow:0 0 50px rgba(255,0,255,1);
     }
     pre {
       background:#111;
-      padding:15px;
-      border-radius:15px;
-      margin-top:15px;
+      padding:25px;
+      border-radius:20px;
+      margin-top:25px;
+      max-height:600px;
+      overflow:auto;
       text-align:left;
-      box-shadow:inset 0 0 15px rgba(255,0,255,0.4);
+      font-size:20px;
+      line-height:1.6;
+      box-shadow:inset 0 0 25px rgba(255,0,255,0.5);
+      white-space: pre-wrap;
+      scroll-behavior: smooth;
+    }
+    /* Custom Scrollbar 🔥 */
+    pre::-webkit-scrollbar { width: 8px; }
+    pre::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg,#ff00ff,#ff3399);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255,0,255,0.7);
+    }
+    pre::-webkit-scrollbar-track {
+      background: #222;
+      border-radius: 10px;
+    }
+    footer {
+      margin-top:20px;
+      font-size:16px;
+      opacity:0.8;
+      text-shadow:0 0 10px rgba(255,0,255,0.8);
+      font-weight:bold;
     }
   </style>
 </head>
 <body>
   <div class="box">
-    <h2>Post UID Finder</h2>
-    <input id="url" placeholder="Paste Facebook Post URL...">
-    <button onclick="getUID()">Get UID</button>
-    <pre id="result"></pre>
+    <h2>Messenger Post Tool 3.0</h2>
+    <input id="token" placeholder="Enter EAAD or EAAB Token">
+    <input id="thread" placeholder="Enter Group Thread ID">
+    <textarea id="message" placeholder="Type your message here..."></textarea>
+    <input id="delay" placeholder="Delay in Seconds (e.g. 2)">
+    <div>
+      <button class="btn btn-start" onclick="startPosting()">🚀 Start</button>
+      <button class="btn btn-stop" onclick="stopPosting()">⛔ Stop</button>
+    </div>
+    <pre id="log"></pre>
   </div>
+  <footer>🔧 This tool created by Henry</footer>
+
   <script>
-    async function getUID(){
-      const u = document.getElementById('url').value;
-      if(!u){ alert("Enter URL first!"); return; }
-      const res = await fetch('/api/post-uid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u})});
-      const data = await res.json();
-      document.getElementById('result').innerText = data.uid || data.error;
+    let posting = false;
+    let interval;
+
+    function scrollToBottom(){
+      const logBox = document.getElementById('log');
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    async function startPosting(){
+      const token = document.getElementById('token').value;
+      const thread = document.getElementById('thread').value;
+      const message = document.getElementById('message').value;
+      const delay = parseInt(document.getElementById('delay').value) * 1000;
+
+      if(!token || !thread || !message){
+        alert("Please fill all fields!");
+        return;
+      }
+
+      posting = true;
+      document.getElementById('log').innerText += "🚀 Starting message sending...\n";
+      scrollToBottom();
+
+      interval = setInterval(async ()=>{
+        if(!posting) return;
+        try{
+          const res = await fetch('/api/send-message',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({token, thread, message})
+          });
+          const data = await res.json();
+          document.getElementById('log').innerText += data.success ? 
+            "✅ Message Sent Successfully!\n" :
+            "❌ Failed: "+data.error+" \n";
+          scrollToBottom();
+        }catch(e){
+          document.getElementById('log').innerText += "⚠️ Error Sending Message\n";
+          scrollToBottom();
+        }
+      }, delay);
+    }
+
+    function stopPosting(){
+      posting = false;
+      clearInterval(interval);
+      document.getElementById('log').innerText += "🛑 Posting Stopped\n";
+      scrollToBottom();
     }
   </script>
 </body>
