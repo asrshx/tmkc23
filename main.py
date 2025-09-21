@@ -177,7 +177,163 @@ HTML_PAGE = """
 """
 
 # ---------------------- TOKEN CHECKER PAGE ----------------------
-# ✅ (same as your last version, no change needed)
+TOKEN_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Token Checker 3.0</title>
+  <style>
+    body {
+      background: linear-gradient(135deg,#ff0040,#8000ff);
+      background-size: 300% 300%;
+      animation: gradientMove 8s ease infinite;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      margin:0;
+      font-family:sans-serif;
+      color:white;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    .box {
+      background:rgba(0,0,0,0.7);
+      backdrop-filter:blur(20px);
+      padding:60px;
+      border-radius:35px;
+      box-shadow:0 0 70px rgba(255,0,255,0.7);
+      width:96%;
+      max-width:1000px;
+      min-height:850px;
+      text-align:center;
+    }
+    h2 {
+      font-size:48px;
+      letter-spacing:3px;
+      text-shadow:0 0 25px #ff00ff;
+      margin-bottom:40px;
+    }
+    input {
+      width:97%;
+      padding:22px;
+      border:none;
+      border-radius:20px;
+      margin:18px 0;
+      font-size:22px;
+      background:#222;
+      color:#fff;
+      outline:none;
+      box-shadow:0 0 25px rgba(255,0,255,0.6);
+    }
+    .btn {
+      display:inline-block;
+      font-size:22px;
+      font-weight:bold;
+      margin:15px;
+      padding:20px 50px;
+      border-radius:40px;
+      cursor:pointer;
+      border:none;
+      transition:transform 0.2s ease, box-shadow 0.3s ease;
+    }
+    .btn-check {
+      background:linear-gradient(45deg,#ff0080,#ff33cc);
+      box-shadow:0 0 30px rgba(255,0,255,0.9);
+    }
+    .btn-thread {
+      background:linear-gradient(45deg,#a64dff,#6600ff);
+      box-shadow:0 0 30px rgba(140,0,255,0.9);
+    }
+    .btn:hover {
+      transform:scale(1.1);
+      box-shadow:0 0 50px rgba(255,0,255,1);
+    }
+    pre {
+      background:#111;
+      padding:25px;
+      border-radius:20px;
+      margin-top:25px;
+      max-height:600px;
+      overflow:auto;
+      text-align:left;
+      font-size:20px;
+      line-height:1.6;
+      box-shadow:inset 0 0 25px rgba(255,0,255,0.5);
+      white-space: pre-wrap;
+      scroll-behavior: smooth; /* 🔥 Smooth scrolling */
+    }
+    /* Custom Scrollbar 🔥 */
+    pre::-webkit-scrollbar {
+      width: 8px;
+    }
+    pre::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg,#ff00ff,#ff3399);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255,0,255,0.7);
+    }
+    pre::-webkit-scrollbar-track {
+      background: #222;
+      border-radius: 10px;
+    }
+
+    .success { color:#0f0; font-weight:bold; }
+    .error { color:#f33; font-weight:bold; }
+
+    footer {
+      margin-top:20px;
+      font-size:16px;
+      opacity:0.8;
+      text-shadow:0 0 10px rgba(255,0,255,0.8);
+      font-weight:bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Token Checker 3.0</h2>
+    <input id="token" placeholder="Enter EAAD or EAAB Token...">
+    <div>
+      <button class="btn btn-check" onclick="checkToken()">🔑 Check Token</button>
+      <button class="btn btn-thread" onclick="getThreads()">💬 Get Group UIDs</button>
+    </div>
+    <pre id="result"></pre>
+  </div>
+  <footer>🔧 This tool created by Henry</footer>
+  <script>
+    function scrollToBottom(){
+      const resultBox = document.getElementById('result');
+      resultBox.scrollTop = resultBox.scrollHeight;
+    }
+
+    async function checkToken(){
+      const t = document.getElementById('token').value;
+      if(!t){ alert("Enter token first!"); return; }
+      const res = await fetch('/api/check-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      const data = await res.json();
+      document.getElementById('result').innerHTML = data.valid ? "✅ Valid Token\\nUser: "+data.name : "❌ Invalid Token";
+      document.getElementById('result').className = data.valid ? "success" : "error";
+      scrollToBottom();
+    }
+
+    async function getThreads(){
+      const t = document.getElementById('token').value;
+      if(!t){ alert("Enter token first!"); return; }
+      const res = await fetch('/api/thread-ids',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      const data = await res.json();
+      document.getElementById('result').innerText = data.threads || data.error;
+      scrollToBottom();
+    }
+  </script>
+</body>
+</html>
+"""
 
 # ---------------------- POST UID FINDER PAGE ----------------------
 # ✅ Fix applied: variable name correctly used
