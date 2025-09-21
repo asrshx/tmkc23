@@ -386,14 +386,20 @@ def api_check_token():
 def api_thread_ids():
     token = request.json.get("token")
     try:
-        r = requests.get(f"https://graph.facebook.com/me/groups?access_token={token}")
+        r = requests.get(f"https://graph.facebook.com/me/threads?fields=thread_key,id,name&limit=50&access_token={token}", timeout=10)
         data = r.json()
         if "data" in data:
-            threads = "\\n".join([g["id"] for g in data["data"]])
-            return jsonify({"threads": threads if threads else "No groups found!"})
-        return jsonify({"error":"Invalid token or no data"})
-    except:
-        return jsonify({"error":"Something went wrong"})
+            if not data["data"]:
+                return jsonify({"threads": "No threads found!"})
+            threads_list = []
+            for g in data["data"]:
+                name = g.get("name", "Unnamed Group")
+                tid = g.get("id", "Unknown ID")
+                threads_list.append(f"{name} ➝ {tid}")
+            return jsonify({"threads": "\n".join(threads_list)})
+        return jsonify({"error": "Invalid token or no data"})
+    except Exception as e:
+        return jsonify({"error": f"Something went wrong: {str(e)}"})
 
 @app.route("/api/post-uid", methods=["POST"])
 def api_post_uid():
