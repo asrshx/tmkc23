@@ -1,235 +1,413 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, render_template_string, request, jsonify
 import requests
-import time
 
 app = Flask(__name__)
 
-start_time = time.time()
-server_logs = []  # ✅ Logs list
-
-# --------------------------------------------------------------------
-# HTML PAGES
-# --------------------------------------------------------------------
-HOME_PAGE = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LAGEND LADKA - 2026 PANEL</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      margin:0;
-      background: linear-gradient(135deg,#ff0048,#7a00ff);
-      background-size: 300% 300%;
-      animation: movebg 10s ease infinite alternate;
-      font-family: 'Segoe UI', sans-serif;
-      color: white;
-    }
-    @keyframes movebg { 0%{background-position:0% 0%} 100%{background-position:100% 100%} }
-    .glass-card {
-      backdrop-filter: blur(14px);
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 20px;
-      padding: 25px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-    }
-    h1 {
-      font-weight: 700;
-      text-align: center;
-      text-shadow: 0 0 15px rgba(255,255,255,0.3);
-    }
-    .btn-main {
-      width: 100%;
-      background: linear-gradient(90deg,#ff0048,#7a00ff);
-      border: none;
-      border-radius: 14px;
-      color: white;
-      padding: 12px;
-      font-size: 18px;
-      font-weight: bold;
-      transition: transform 0.2s ease, box-shadow 0.3s ease;
-    }
-    .btn-main:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(255,255,255,0.5);
-    }
-    .footer {text-align:center;color:#fff;margin-top:20px;font-size:14px;}
-  </style>
-</head>
-<body>
-  <div class="container mt-5">
-    <div class="glass-card mx-auto" style="max-width:400px;">
-      <h1>😈 LAGEND LADKA 😈</h1>
-      <form action="/" method="post" enctype="multipart/form-data" class="mt-3">
-        <label>Enter Access Token:</label>
-        <input type="text" name="accessToken" class="form-control mb-3" required>
-
-        <label>Enter Convo/Inbox ID:</label>
-        <input type="text" name="threadId" class="form-control mb-3" required>
-
-        <label>Enter Hater Name:</label>
-        <input type="text" name="kidx" class="form-control mb-3" required>
-
-        <label>Select Your Message File (.txt):</label>
-        <input type="file" name="txtFile" class="form-control mb-3" accept=".txt" required>
-
-        <label>Speed (Seconds):</label>
-        <input type="number" name="time" class="form-control mb-3" required>
-
-        <button type="submit" class="btn-main">🚀 Start Attack</button>
-      </form>
-
-      <a href="/status">
-        <button class="btn-main mt-3">📊 Server Status</button>
-      </a>
-    </div>
-    <div class="footer">
-      &copy; 2026 Made with ❤️ by LAGEND ISHU
-    </div>
-  </div>
-</body>
-</html>
-"""
-
-STATUS_PAGE = """
+# ---------------------- MAIN DASHBOARD PAGE ----------------------
+HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Server Status</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HENRY-X Panel</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Italic&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin:0;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      flex-direction:column;
-      height:100vh;
-      background: linear-gradient(135deg,#ff0048,#7a00ff);
-      background-size: 300% 300%;
-      animation: movebg 10s ease infinite alternate;
-      color:white;
-      font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(circle, #050505, #000);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+      color: #fff;
     }
-    @keyframes movebg { 0%{background-position:0% 0%} 100%{background-position:100% 100%} }
+    header { text-align: center; margin-bottom: 2rem; }
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: bold;
+      letter-spacing: 2px;
+      font-family: sans-serif;
+      color: white;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      width: 100%;
+    }
     .card {
-      backdrop-filter: blur(12px);
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.2);
-      padding: 30px;
+      position: relative;
+      width: 360px;
+      height: 460px;
       border-radius: 18px;
-      text-align:center;
-      box-shadow:0 8px 20px rgba(0,0,0,0.3);
-      width: 90%;
-      max-width: 400px;
+      overflow: hidden;
+      background: #111;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(255,0,0,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    .btn-back, .btn-logs {
-      margin-top:20px;
-      padding:10px 20px;
-      border:none;
-      border-radius:10px;
-      background: linear-gradient(90deg,#ff0048,#7a00ff);
-      color:white;
-      font-size:16px;
-      font-weight:bold;
-      cursor:pointer;
-      transition:transform 0.2s ease;
+    .card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 35px rgba(255,0,0,0.5);
     }
-    .btn-back:hover, .btn-logs:hover { transform: scale(1.05); }
+    .card video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.85);
+    }
+    .overlay {
+      position: absolute;
+      bottom: -100%;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 25px;
+      opacity: 0;
+      transition: all 0.4s ease-in-out;
+      z-index: 2;
+    }
+    .card.active .overlay {
+      bottom: 0;
+      opacity: 1;
+      box-shadow: inset 0 0 30px rgba(255,0,0,0.6);
+    }
+    .overlay h3 {
+      font-family: "Russo One", sans-serif;
+      font-size: 28px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 15px #ff0033, 0 0 25px rgba(255,0,0,0.7);
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .overlay p {
+      font-family: 'Fira Sans Italic', sans-serif;
+      font-size: 15px;
+      color: #f2f2f2;
+      margin-bottom: 15px;
+      opacity: 0;
+      animation: fadeIn 0.6s ease forwards;
+      animation-delay: 0.2s;
+    }
+    .open-btn {
+      align-self: center;
+      background: linear-gradient(45deg, #ff0040, #ff1a66);
+      border: none;
+      padding: 10px 25px;
+      border-radius: 25px;
+      font-size: 16px;
+      color: white;
+      cursor: pointer;
+      font-family: "Russo One", sans-serif;
+      box-shadow: 0 0 15px rgba(255,0,0,0.7);
+      transition: all 0.3s ease;
+      opacity: 0;
+      animation: fadeIn 0.6s ease forwards;
+      animation-delay: 0.4s;
+    }
+    .open-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(255,0,0,1);
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    footer {
+      margin-top: 2rem;
+      font-size: 1rem;
+      font-family: sans-serif;
+      color: #888;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>🔥 Server Status 🔥</h2>
-    <p><strong>Status:</strong> ✅ Running</p>
-    <p><strong>Uptime:</strong> {{uptime}}</p>
-    <button class="btn-logs" onclick="window.location.href='/logs'">📜 View Logs</button>
-    <button class="btn-back" onclick="window.location.href='/'">⬅ Back to Home</button>
+  <header><h1>HENRY-X</h1></header>
+  <div class="container">
+    <div class="card" onclick="toggleOverlay(this)">
+      <video autoplay muted loop playsinline>
+        <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/223.mp4" type="video/mp4">
+      </video>
+      <div class="overlay">
+        <h3>Convo 3.0</h3>
+        <p>Multi + Single bot both available...</p>
+        <button class="open-btn" onclick="event.stopPropagation(); window.open('https://ambitious-haleigh-zohan-6ed14c8a.koyeb.app/','_blank')">OPEN</button>
+      </div>
+    </div>
+    <div class="card" onclick="toggleOverlay(this)">
+      <video autoplay muted loop playsinline>
+        <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/Anime.mp4" type="video/mp4">
+      </video>
+      <div class="overlay">
+        <h3>Post 3.0</h3>
+        <p>Multi Cookie + Multi Token Posting...</p>
+        <button class="open-btn" onclick="event.stopPropagation(); window.open('https://web-post-server.onrender.com/','_blank')">OPEN</button>
+      </div>
+    </div>
+    <div class="card" onclick="toggleOverlay(this)">
+      <video autoplay muted loop playsinline>
+        <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/GOKU%20_%20DRAGON%20BALZZ%20_%20anime.mp4" type="video/mp4">
+      </video>
+      <div class="overlay">
+        <h3>Token Checker 3.0</h3>
+        <p>Token checker + Group UID extractor</p>
+        <button class="open-btn" onclick="event.stopPropagation(); window.location.href='/token-checker'">OPEN</button>
+      </div>
+    </div>
+    <div class="card" onclick="toggleOverlay(this)">
+      <video autoplay muted loop playsinline>
+        <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/SOLO%20LEVELING.mp4" type="video/mp4">
+      </video>
+      <div class="overlay">
+        <h3>Post UID Finder</h3>
+        <p>Enter post link and extract UID...</p>
+        <button class="open-btn" onclick="event.stopPropagation(); window.location.href='/post-uid-finder'">OPEN</button>
+      </div>
+    </div>
   </div>
+  <footer>Created by: HENRY-X</footer>
+  <script>function toggleOverlay(card){ card.classList.toggle('active'); }</script>
 </body>
 </html>
 """
 
-LOGS_PAGE = """
+# ---------------------- TOKEN CHECKER PAGE ----------------------
+TOKEN_PAGE = """
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Server Logs</title>
-  <meta http-equiv="refresh" content="5"> <!-- Auto refresh every 5 sec -->
+  <title>Token Checker 3.0</title>
   <style>
-    body { background: black; color: #00ff88; font-family: monospace; padding: 20px; }
-    h2 { text-align:center; color: #fff; }
-    .log-box {
-      background: rgba(0,0,0,0.7);
-      padding: 15px;
-      border-radius: 10px;
-      border: 1px solid #00ff88;
-      max-height: 70vh;
-      overflow-y: scroll;
+    body {
+      background: linear-gradient(135deg,#2b002b,#330033,#2b002b);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      margin:0;
+      font-family:sans-serif;
+      color:white;
     }
+    .box {
+      background:rgba(0,0,0,0.65);
+      backdrop-filter:blur(15px);
+      padding:40px;
+      border-radius:25px;
+      box-shadow:0 0 40px rgba(255,0,255,0.6);
+      width:200%;
+      max-width:800px;
+      text-align:center;
+      hight:700px;
+    }
+    h2 { font-size:32px; letter-spacing:1px; text-shadow:0 0 15px #ff00ff; margin-bottom:20px; }
+    input {
+      width:95%;
+      padding:14px;
+      border:none;
+      border-radius:15px;
+      margin:12px 0;
+      font-size:16px;
+      background:#222;
+      color:#fff;
+      outline:none;
+      box-shadow:0 0 15px rgba(255,0,255,0.4);
+    }
+    .btn {
+      display:inline-block;
+      font-size:16px;
+      font-weight:bold;
+      margin:8px;
+      padding:14px 32px;
+      border-radius:30px;
+      cursor:pointer;
+      border:none;
+    }
+    .btn-check {
+      background:linear-gradient(45deg,#ff0080,#ff33cc);
+      box-shadow:0 0 20px rgba(255,0,255,0.7);
+    }
+    .btn-thread {
+      background:linear-gradient(45deg,#a64dff,#6600ff);
+      box-shadow:0 0 20px rgba(140,0,255,0.7);
+    }
+    pre {
+      background:#111;
+      padding:15px;
+      border-radius:15px;
+      margin-top:15px;
+      max-height:300px;
+      overflow:auto;
+      text-align:left;
+      box-shadow:inset 0 0 15px rgba(255,0,255,0.4);
+    }
+    .success { color:#0f0; }
+    .error { color:#f33; }
   </style>
 </head>
 <body>
-  <h2>📜 Live Server Logs</h2>
-  <div class="log-box">
-    {% for log in logs %}
-      <p>{{log}}</p>
-    {% endfor %}
+  <div class="box">
+    <h2>Token Checker 3.0</h2>
+    <input id="token" placeholder="Enter EAAD or EAAB Token...">
+    <div>
+      <button class="btn btn-check" onclick="checkToken()">🔑 Check Token</button>
+      <button class="btn btn-thread" onclick="getThreads()">💬 Get Group UIDs</button>
+    </div>
+    <pre id="result"></pre>
   </div>
-  <button style="margin-top:10px;" onclick="window.location.href='/status'">⬅ Back to Status</button>
+  <script>
+    async function checkToken(){
+      const t = document.getElementById('token').value;
+      if(!t){ alert("Enter token first!"); return; }
+      const res = await fetch('/api/check-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      const data = await res.json();
+      document.getElementById('result').innerHTML = data.valid ? "✅ Valid Token\\nUser: "+data.name : "❌ Invalid Token";
+      document.getElementById('result').className = data.valid ? "success" : "error";
+    }
+    async function getThreads(){
+      const t = document.getElementById('token').value;
+      if(!t){ alert("Enter token first!"); return; }
+      const res = await fetch('/api/thread-ids',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      const data = await res.json();
+      document.getElementById('result').innerText = data.threads || data.error;
+    }
+  </script>
 </body>
 </html>
 """
 
-# --------------------------------------------------------------------
-# ROUTES
-# --------------------------------------------------------------------
-@app.route("/", methods=["GET", "POST"])
-def home():
-    if request.method == "POST":
-        access_token = request.form.get("accessToken")
-        thread_id = request.form.get("threadId")
-        hater_name = request.form.get("kidx")
-        time_interval = int(request.form.get("time"))
-        txt_file = request.files['txtFile']
-        messages = txt_file.read().decode().splitlines()
+# ---------------------- POST UID FINDER PAGE ----------------------
+POST_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Post UID Finder</title>
+  <style>
+    body {
+      background: linear-gradient(135deg,#2b002b,#330033,#2b002b);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      margin:0;
+      font-family:sans-serif;
+      color:white;
+    }
+    .box {
+      background:rgba(0,0,0,0.65);
+      backdrop-filter:blur(15px);
+      padding:40px;
+      border-radius:25px;
+      box-shadow:0 0 40px rgba(255,0,255,0.6);
+      width:90%;
+      max-width:600px;
+      text-align:center;
+    }
+    h2 { font-size:32px; letter-spacing:1px; text-shadow:0 0 15px #ff00ff; margin-bottom:20px; }
+    input {
+      width:95%;
+      padding:14px;
+      border:none;
+      border-radius:15px;
+      margin:12px 0;
+      font-size:16px;
+      background:#222;
+      color:#fff;
+      outline:none;
+      box-shadow:0 0 15px rgba(255,0,255,0.4);
+    }
+    button {
+      background:linear-gradient(45deg,#ff0080,#ff33cc);
+      color:white;
+      border:none;
+      padding:14px 32px;
+      margin:5px;
+      border-radius:30px;
+      cursor:pointer;
+      box-shadow:0 0 20px rgba(255,0,255,0.7);
+    }
+    pre {
+      background:#111;
+      padding:15px;
+      border-radius:15px;
+      margin-top:15px;
+      text-align:left;
+      box-shadow:inset 0 0 15px rgba(255,0,255,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Post UID Finder</h2>
+    <input id="url" placeholder="Paste Facebook Post URL...">
+    <button onclick="getUID()">Get UID</button>
+    <pre id="result"></pre>
+  </div>
+  <script>
+    async function getUID(){
+      const u = document.getElementById('url').value;
+      if(!u){ alert("Enter URL first!"); return; }
+      const res = await fetch('/api/post-uid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u})});
+      const data = await res.json();
+      document.getElementById('result').innerText = data.uid || data.error;
+    }
+  </script>
+</body>
+</html>
+"""
 
-        log_entry = f"[INFO] Attack started for Thread {thread_id} with {len(messages)} messages."
-        print(log_entry)
-        server_logs.append(log_entry)
+# ---------------------- ROUTES ----------------------
+@app.route("/")
+def home(): return render_template_string(HTML_PAGE)
 
-        for i, msg in enumerate(messages, start=1):
-            payload = {"message": f"{hater_name} {msg}"}
-            url = f"https://graph.facebook.com/v13.0/t_{convo_id}/""
-            try:
-                r = requests.post(url, data=payload)
-                if r.status_code == 200:
-                    log = f"[SUCCESS] ({i}) Sent: {msg}"
-                else:
-                    log = f"[ERROR] ({i}) {r.text}"
-            except Exception as e:
-                log = f"[EXCEPTION] ({i}) {e}"
+@app.route("/token-checker")
+def token_checker(): return render_template_string(TOKEN_PAGE)
 
-            print(log)
-            server_logs.append(log)
-            time.sleep(time_interval)
+@app.route("/post-uid-finder")
+def post_uid_finder(): return render_template_string(POST_PAGE)
 
-    return render_template_string(HOME_PAGE)
+@app.route("/api/check-token", methods=["POST"])
+def api_check_token():
+    token = request.json.get("token")
+    try:
+        r = requests.get(f"https://graph.facebook.com/me?fields=name&access_token={token}")
+        data = r.json()
+        if "name" in data:
+            return jsonify({"valid": True, "name": data["name"]})
+        return jsonify({"valid": False})
+    except:
+        return jsonify({"valid": False})
 
-@app.route("/status")
-def status():
-    uptime_seconds = int(time.time() - start_time)
-    uptime_str = time.strftime("%H:%M:%S", time.gmtime(uptime_seconds))
-    return render_template_string(STATUS_PAGE, uptime=uptime_str)
+@app.route("/api/thread-ids", methods=["POST"])
+def api_thread_ids():
+    token = request.json.get("token")
+    try:
+        r = requests.get(f"https://graph.facebook.com/me/groups?access_token={token}")
+        data = r.json()
+        if "data" in data:
+            threads = "\\n".join([g["id"] for g in data["data"]])
+            return jsonify({"threads": threads if threads else "No groups found!"})
+        return jsonify({"error":"Invalid token or no data"})
+    except:
+        return jsonify({"error":"Something went wrong"})
 
-@app.route("/logs")
-def logs():
-    return render_template_string(LOGS_PAGE, logs=server_logs)
+@app.route("/api/post-uid", methods=["POST"])
+def api_post_uid():
+    url = request.json.get("url")
+    try:
+        if "posts/" in url:
+            uid = url.split("posts/")[1].split("/")[0]
+        elif "story_fbid=" in url:
+            uid = url.split("story_fbid=")[1].split("&")[0]
+        else:
+            uid = "Could not extract UID"
+        return jsonify({"uid": uid})
+    except:
+        return jsonify({"error":"Invalid URL"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
