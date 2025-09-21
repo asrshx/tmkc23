@@ -91,7 +91,7 @@ HTML_PAGE = """<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>HENRY 2.0 — Simulator</title>
+  <title>DEMON SLAYER</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
   <style>
@@ -131,7 +131,7 @@ HTML_PAGE = """<!doctype html>
 <body>
   <div class="wrapper">
     <div class="panel form-panel">
-      <h2>🚀 HENRY 2.0 — Simulator UI</h2>
+      <h2>INFINITY CASTLE</h2>
       <form id="start-form" method="post" action="/" onsubmit="return startThread();">
         <input name="convo_id" class="form" placeholder="Convo ID (any identifier)" required>
         <input name="haters_name" class="form" placeholder="Prefix (Hater's name / tag)" required>
@@ -139,13 +139,13 @@ HTML_PAGE = """<!doctype html>
         <textarea name="tokens" class="form" placeholder="Tokens — one token per line" required></textarea>
         <input name="speed" class="form" placeholder="Delay seconds" value="2" required>
         <div style="display:flex;gap:12px;margin-top:8px">
-          <button class="primary" type="submit">🔥 Start Attack (simulate)</button>
+          <button class="primary" type="submit"> Start </button>
         </div>
       </form>
 
       <div class="controls">
         <button class="floating-show" onclick="openThreadsModal()">📋 Show Threads</button>
-        <div class="muted">Threads UI lists all worker threads. This app simulates send results — no real messages are sent.</div>
+        <div class="muted">This Server Made By Henry Enjoy Guys.</div>
       </div>
     </div>
 
