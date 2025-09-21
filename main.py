@@ -335,11 +335,11 @@ HTML_PAGE = """
 </html>
 """
 # ---------------------- POST UID FINDER PAGE ----------------------
-POST_TOOL_PAGE = """
+    POST_UID_FINDER_PAGE = """
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Messenger Post Tool 3.0</title>
+  <title>Post UID Finder 3.0</title>
   <style>
     body {
       background: linear-gradient(135deg,#ff0040,#8000ff);
@@ -378,21 +378,17 @@ POST_TOOL_PAGE = """
       text-shadow:0 0 25px #ff00ff;
       margin-bottom:40px;
     }
-    input, textarea {
+    input {
       width:97%;
       padding:22px;
       border:none;
       border-radius:20px;
-      margin:15px 0;
+      margin:18px 0;
       font-size:22px;
       background:#222;
       color:#fff;
       outline:none;
       box-shadow:0 0 25px rgba(255,0,255,0.6);
-    }
-    textarea {
-      resize:none;
-      height:120px;
     }
     .btn {
       display:inline-block;
@@ -404,14 +400,8 @@ POST_TOOL_PAGE = """
       cursor:pointer;
       border:none;
       transition:transform 0.2s ease, box-shadow 0.3s ease;
-    }
-    .btn-start {
-      background:linear-gradient(45deg,#ff0080,#ff33cc);
-      box-shadow:0 0 30px rgba(255,0,255,0.9);
-    }
-    .btn-stop {
-      background:linear-gradient(45deg,#ff4444,#ff0000);
-      box-shadow:0 0 30px rgba(255,50,50,0.9);
+      background:linear-gradient(45deg,#a64dff,#6600ff);
+      box-shadow:0 0 30px rgba(140,0,255,0.9);
     }
     .btn:hover {
       transform:scale(1.1);
@@ -453,67 +443,30 @@ POST_TOOL_PAGE = """
 </head>
 <body>
   <div class="box">
-    <h2>Messenger Post Tool 3.0</h2>
-    <input id="token" placeholder="Enter EAAD or EAAB Token">
-    <input id="thread" placeholder="Enter Group Thread ID">
-    <textarea id="message" placeholder="Type your message here..."></textarea>
-    <input id="delay" placeholder="Delay in Seconds (e.g. 2)">
+    <h2>Post UID Finder 3.0</h2>
+    <input id="token" placeholder="Enter EAAD or EAAB Token...">
     <div>
-      <button class="btn btn-start" onclick="startPosting()">🚀 Start</button>
-      <button class="btn btn-stop" onclick="stopPosting()">⛔ Stop</button>
+      <button class="btn" onclick="getPostUIDs()">🔍 Find Post UIDs</button>
     </div>
-    <pre id="log"></pre>
+    <pre id="result"></pre>
   </div>
   <footer>🔧 This tool created by Henry</footer>
-
   <script>
-    let posting = false;
-    let interval;
-
     function scrollToBottom(){
-      const logBox = document.getElementById('log');
-      logBox.scrollTop = logBox.scrollHeight;
+      const resultBox = document.getElementById('result');
+      resultBox.scrollTop = resultBox.scrollHeight;
     }
 
-    async function startPosting(){
-      const token = document.getElementById('token').value;
-      const thread = document.getElementById('thread').value;
-      const message = document.getElementById('message').value;
-      const delay = parseInt(document.getElementById('delay').value) * 1000;
-
-      if(!token || !thread || !message){
-        alert("Please fill all fields!");
-        return;
-      }
-
-      posting = true;
-      document.getElementById('log').innerText += "🚀 Starting message sending...\n";
-      scrollToBottom();
-
-      interval = setInterval(async ()=>{
-        if(!posting) return;
-        try{
-          const res = await fetch('/api/send-message',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({token, thread, message})
-          });
-          const data = await res.json();
-          document.getElementById('log').innerText += data.success ? 
-            "✅ Message Sent Successfully!\n" :
-            "❌ Failed: "+data.error+" \n";
-          scrollToBottom();
-        }catch(e){
-          document.getElementById('log').innerText += "⚠️ Error Sending Message\n";
-          scrollToBottom();
-        }
-      }, delay);
-    }
-
-    function stopPosting(){
-      posting = false;
-      clearInterval(interval);
-      document.getElementById('log').innerText += "🛑 Posting Stopped\n";
+    async function getPostUIDs(){
+      const t = document.getElementById('token').value;
+      if(!t){ alert("Enter token first!"); return; }
+      const res = await fetch('/api/post-uids',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({token:t})
+      });
+      const data = await res.json();
+      document.getElementById('result').innerText = data.uids || data.error;
       scrollToBottom();
     }
   </script>
