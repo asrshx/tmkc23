@@ -1,12 +1,11 @@
 from flask import Flask, request, render_template_string
 import requests
 import time
-from datetime import datetime
 
 app = Flask(__name__)
 
-# Global uptime
 start_time = time.time()
+server_logs = []  # ✅ Logs list
 
 # --------------------------------------------------------------------
 # HTML PAGES
@@ -128,7 +127,7 @@ STATUS_PAGE = """
       width: 90%;
       max-width: 400px;
     }
-    .btn-back {
+    .btn-back, .btn-logs {
       margin-top:20px;
       padding:10px 20px;
       border:none;
@@ -140,7 +139,7 @@ STATUS_PAGE = """
       cursor:pointer;
       transition:transform 0.2s ease;
     }
-    .btn-back:hover { transform: scale(1.05); }
+    .btn-back:hover, .btn-logs:hover { transform: scale(1.05); }
   </style>
 </head>
 <body>
@@ -148,8 +147,41 @@ STATUS_PAGE = """
     <h2>🔥 Server Status 🔥</h2>
     <p><strong>Status:</strong> ✅ Running</p>
     <p><strong>Uptime:</strong> {{uptime}}</p>
+    <button class="btn-logs" onclick="window.location.href='/logs'">📜 View Logs</button>
     <button class="btn-back" onclick="window.location.href='/'">⬅ Back to Home</button>
   </div>
+</body>
+</html>
+"""
+
+LOGS_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Server Logs</title>
+  <meta http-equiv="refresh" content="5"> <!-- Auto refresh every 5 sec -->
+  <style>
+    body { background: black; color: #00ff88; font-family: monospace; padding: 20px; }
+    h2 { text-align:center; color: #fff; }
+    .log-box {
+      background: rgba(0,0,0,0.7);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #00ff88;
+      max-height: 70vh;
+      overflow-y: scroll;
+    }
+  </style>
+</head>
+<body>
+  <h2>📜 Live Server Logs</h2>
+  <div class="log-box">
+    {% for log in logs %}
+      <p>{{log}}</p>
+    {% endfor %}
+  </div>
+  <button style="margin-top:10px;" onclick="window.location.href='/status'">⬅ Back to Status</button>
 </body>
 </html>
 """
@@ -167,21 +199,24 @@ def home():
         txt_file = request.files['txtFile']
         messages = txt_file.read().decode().splitlines()
 
-        print(f"[LOG] Token: {access_token}, Thread: {thread_id}, Hater: {hater_name}, Interval: {time_interval}")
-        print(f"[LOG] Loaded {len(messages)} messages from file.")
+        log_entry = f"[INFO] Attack started for Thread {thread_id} with {len(messages)} messages."
+        print(log_entry)
+        server_logs.append(log_entry)
 
-        # ✅ REAL API CALL SYSTEM
         for i, msg in enumerate(messages, start=1):
-            payload = {"message": msg}
+            payload = {"message": f"{hater_name} {msg}"}
             url = f"https://graph.facebook.com/v15.0/{thread_id}/messages?access_token={access_token}"
             try:
                 r = requests.post(url, data=payload)
                 if r.status_code == 200:
-                    print(f"[SUCCESS] ({i}) Message sent: {msg}")
+                    log = f"[SUCCESS] ({i}) Sent: {msg}"
                 else:
-                    print(f"[ERROR] ({i}) Failed: {r.text}")
+                    log = f"[ERROR] ({i}) {r.text}"
             except Exception as e:
-                print(f"[EXCEPTION] ({i}) {e}")
+                log = f"[EXCEPTION] ({i}) {e}"
+
+            print(log)
+            server_logs.append(log)
             time.sleep(time_interval)
 
     return render_template_string(HOME_PAGE)
@@ -191,6 +226,10 @@ def status():
     uptime_seconds = int(time.time() - start_time)
     uptime_str = time.strftime("%H:%M:%S", time.gmtime(uptime_seconds))
     return render_template_string(STATUS_PAGE, uptime=uptime_str)
+
+@app.route("/logs")
+def logs():
+    return render_template_string(LOGS_PAGE, logs=server_logs)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
