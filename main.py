@@ -188,11 +188,12 @@ TOKEN_PAGE = """
       background-size: 300% 300%;
       animation: gradientMove 8s ease infinite;
       display:flex;
+      flex-direction:column;
       justify-content:center;
       align-items:center;
       height:100vh;
       margin:0;
-      font-family:'Segoe UI', sans-serif;
+      font-family:sans-serif;
       color:white;
     }
 
@@ -202,115 +203,95 @@ TOKEN_PAGE = """
       100% { background-position: 0% 0%; }
     }
 
-    /* 🔥 BIG WOW CARD */
     .box {
-      background:rgba(10,10,10,0.6);
-      backdrop-filter:blur(30px) saturate(180%);
+      background:rgba(0,0,0,0.7);
+      backdrop-filter:blur(20px);
       padding:60px;
-      border-radius:40px;
-      border:1px solid rgba(255,255,255,0.2);
-      box-shadow:
-        0 0 50px rgba(255,0,255,0.6),
-        inset 0 0 25px rgba(255,255,255,0.1);
-      width:240%;              /* ✅ Half screen */
-      min-height:60%;         /* ✅ Height bhi half */
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
+      border-radius:35px;
+      box-shadow:0 0 70px rgba(255,0,255,0.7);
+      width:96%;
+      max-width:1000px;
+      min-height:850px;
       text-align:center;
-      transition: transform 0.4s ease, box-shadow 0.4s ease;
     }
-    .box:hover {
-      transform:scale(1.03);
-      box-shadow:
-        0 0 90px rgba(255,0,255,0.7),
-        inset 0 0 35px rgba(255,255,255,0.15);
-    }
-
     h2 {
-      font-size:60px; /* ✅ Bada title */
-      font-weight:900;
-      letter-spacing:4px;
-      text-shadow:0 0 35px #ff00ff, 0 0 70px #ff33cc;
-      margin-bottom:35px;
+      font-size:48px;
+      letter-spacing:3px;
+      text-shadow:0 0 25px #ff00ff;
+      margin-bottom:40px;
     }
-
     input {
-      width:90%;
-      padding:28px;
+      width:97%;
+      padding:22px;
       border:none;
-      border-radius:25px;
-      margin:25px 0;
-      font-size:26px;  /* ✅ Input text bada */
-      font-weight:600;
-      background:rgba(20,20,20,0.85);
+      border-radius:20px;
+      margin:18px 0;
+      font-size:22px;
+      background:#222;
       color:#fff;
       outline:none;
-      box-shadow:0 0 35px rgba(255,0,255,0.6), inset 0 0 12px rgba(255,255,255,0.1);
-      transition: box-shadow 0.3s ease;
+      box-shadow:0 0 25px rgba(255,0,255,0.6);
     }
-    input:focus {
-      box-shadow:0 0 45px rgba(255,0,255,0.9), inset 0 0 18px rgba(255,255,255,0.2);
-    }
-
     .btn {
       display:inline-block;
-      font-size:28px;  /* ✅ Bada button text */
-      font-weight:900;
-      margin:18px;
-      padding:25px 65px;
-      border-radius:50px;
+      font-size:22px;
+      font-weight:bold;
+      margin:15px;
+      padding:20px 50px;
+      border-radius:40px;
       cursor:pointer;
       border:none;
-      letter-spacing:1px;
-      transition:transform 0.25s ease, box-shadow 0.3s ease;
+      transition:transform 0.2s ease, box-shadow 0.3s ease;
     }
     .btn-check {
-      background:linear-gradient(135deg,#ff0080,#ff33cc);
-      box-shadow:0 0 50px rgba(255,0,255,0.9);
+      background:linear-gradient(45deg,#ff0080,#ff33cc);
+      box-shadow:0 0 30px rgba(255,0,255,0.9);
     }
     .btn-thread {
-      background:linear-gradient(135deg,#a64dff,#6600ff);
-      box-shadow:0 0 50px rgba(140,0,255,0.9);
+      background:linear-gradient(45deg,#a64dff,#6600ff);
+      box-shadow:0 0 30px rgba(140,0,255,0.9);
     }
     .btn:hover {
-      transform:scale(1.15);
-      box-shadow:0 0 70px rgba(255,0,255,1);
+      transform:scale(1.1);
+      box-shadow:0 0 50px rgba(255,0,255,1);
     }
-
     pre {
-      background:rgba(15,15,15,0.85);
-      padding:30px;
-      border-radius:25px;
-      margin-top:30px;
-      max-height:300px;
-      width:90%;
+      background:#111;
+      padding:25px;
+      border-radius:20px;
+      margin-top:25px;
+      max-height:600px;
       overflow:auto;
       text-align:left;
-      font-size:22px;  /* ✅ Result text bada */
-      line-height:1.7;
-      box-shadow:inset 0 0 35px rgba(255,0,255,0.5);
+      font-size:20px;
+      line-height:1.6;
+      box-shadow:inset 0 0 25px rgba(255,0,255,0.5);
       white-space: pre-wrap;
-      scroll-behavior: smooth;
-      border:1px solid rgba(255,255,255,0.15);
+      scroll-behavior: smooth; /* 🔥 Smooth scrolling */
+    }
+    /* Custom Scrollbar 🔥 */
+    pre::-webkit-scrollbar {
+      width: 8px;
+    }
+    pre::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg,#ff00ff,#ff3399);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255,0,255,0.7);
+    }
+    pre::-webkit-scrollbar-track {
+      background: #222;
+      border-radius: 10px;
     }
 
-    .success { color:#0f0; font-weight:bold; text-shadow: 0 0 15px #0f0; font-size:24px; }
-    .error { color:#f33; font-weight:bold; text-shadow: 0 0 15px #f33; font-size:24px; }
+    .success { color:#0f0; font-weight:bold; }
+    .error { color:#f33; font-weight:bold; }
 
     footer {
       margin-top:20px;
-      font-size:50px;
-      opacity:0.85;
-      text-shadow:0 0 15px rgba(255,0,255,0.8);
+      font-size:16px;
+      opacity:0.8;
+      text-shadow:0 0 10px rgba(255,0,255,0.8);
       font-weight:bold;
-      animation: glow 2s infinite alternate;
-    }
-
-    @keyframes glow {
-      0% { text-shadow: 0 0 8px #ff00ff, 0 0 12px #ff00ff; }
-      100% { text-shadow: 0 0 25px #ff33cc, 0 0 40px #ff33cc; }
     }
   </style>
 </head>
@@ -330,6 +311,7 @@ TOKEN_PAGE = """
       const resultBox = document.getElementById('result');
       resultBox.scrollTop = resultBox.scrollHeight;
     }
+
     async function checkToken(){
       const t = document.getElementById('token').value;
       if(!t){ alert("Enter token first!"); return; }
@@ -339,6 +321,7 @@ TOKEN_PAGE = """
       document.getElementById('result').className = data.valid ? "success" : "error";
       scrollToBottom();
     }
+
     async function getThreads(){
       const t = document.getElementById('token').value;
       if(!t){ alert("Enter token first!"); return; }
