@@ -199,10 +199,10 @@ TOKEN_PAGE = """
       padding:40px;
       border-radius:25px;
       box-shadow:0 0 40px rgba(255,0,255,0.6);
-      width:200%;
-      max-width:800px;
+      width:95%;
+      max-width:850px;
+      min-height:750px; /* 🔥 Lambai badhayi */
       text-align:center;
-      hight:700px;
     }
     h2 { font-size:32px; letter-spacing:1px; text-shadow:0 0 15px #ff00ff; margin-bottom:20px; }
     input {
@@ -240,10 +240,11 @@ TOKEN_PAGE = """
       padding:15px;
       border-radius:15px;
       margin-top:15px;
-      max-height:300px;
+      max-height:500px;
       overflow:auto;
       text-align:left;
       box-shadow:inset 0 0 15px rgba(255,0,255,0.4);
+      white-space: pre-wrap;
     }
     .success { color:#0f0; }
     .error { color:#f33; }
@@ -279,7 +280,6 @@ TOKEN_PAGE = """
 </body>
 </html>
 """
-
 # ---------------------- POST UID FINDER PAGE ----------------------
 POST_PAGE = """
 <!DOCTYPE html>
@@ -382,24 +382,27 @@ def api_check_token():
     except:
         return jsonify({"valid": False})
 
+# ---------------------- FIXED THREAD-IDS API ----------------------
 @app.route("/api/thread-ids", methods=["POST"])
 def api_thread_ids():
     token = request.json.get("token")
     try:
-        r = requests.get(f"https://graph.facebook.com/me/threads?fields=thread_key,id,name&limit=50&access_token={token}", timeout=10)
+        # ✅ Messenger threads ka correct edge
+        r = requests.get(f"https://graph.facebook.com/v21.0/me/message_threads?fields=id,name&limit=50&access_token={token}", timeout=10)
         data = r.json()
         if "data" in data:
             if not data["data"]:
-                return jsonify({"threads": "No threads found!"})
+                return jsonify({"threads": "No Messenger Threads Found!"})
             threads_list = []
             for g in data["data"]:
                 name = g.get("name", "Unnamed Group")
                 tid = g.get("id", "Unknown ID")
                 threads_list.append(f"{name} ➝ {tid}")
             return jsonify({"threads": "\n".join(threads_list)})
-        return jsonify({"error": "Invalid token or no data"})
+        return jsonify({"error": data.get("error", {}).get("message", "Invalid token or no data")})
     except Exception as e:
         return jsonify({"error": f"Something went wrong: {str(e)}"})
+
 
 @app.route("/api/post-uid", methods=["POST"])
 def api_post_uid():
