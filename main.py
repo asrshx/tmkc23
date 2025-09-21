@@ -212,7 +212,7 @@ TOKEN_PAGE = """
       box-shadow:
         0 0 50px rgba(255,0,255,0.6),
         inset 0 0 25px rgba(255,255,255,0.1);
-      width:190%;              /* ✅ Half screen */
+      width:240%;              /* ✅ Half screen */
       min-height:60%;         /* ✅ Height bhi half */
       display:flex;
       flex-direction:column;
@@ -301,7 +301,7 @@ TOKEN_PAGE = """
 
     footer {
       margin-top:20px;
-      font-size:20px;
+      font-size:50px;
       opacity:0.85;
       text-shadow:0 0 15px rgba(255,0,255,0.8);
       font-weight:bold;
