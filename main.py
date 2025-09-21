@@ -518,9 +518,14 @@ def api_thread_ids():
         return jsonify({"error": f"Something went wrong: {str(e)}"})
 
 
+@app.route("/post-uid-finder")
+def post_uid_finder():
+    return render_template_string(POST_UID_FINDER_PAGE)  # ✅ Fixed
+
+# ---------------------- POST UID API ----------------------
 @app.route("/api/post-uid", methods=["POST"])
 def api_post_uid():
-    url = request.json.get("url")
+    url = request.json.get("url")  # ✅ expecting URL now
     try:
         if "posts/" in url:
             uid = url.split("posts/")[1].split("/")[0]
@@ -528,9 +533,9 @@ def api_post_uid():
             uid = url.split("story_fbid=")[1].split("&")[0]
         else:
             uid = "Could not extract UID"
-        return jsonify({"uid": uid})
+        return jsonify({"uids": uid})  # ✅ return key renamed to match front-end
     except:
-        return jsonify({"error":"Invalid URL"})
+        return jsonify({"error": "Invalid URL"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
