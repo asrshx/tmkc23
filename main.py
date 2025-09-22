@@ -167,7 +167,7 @@ function toggleLoading(show){
 </script>
 </body>
 </html>
-'''
+"""
 # ---------------- UTILITY ----------------
 TOKEN_INFO_URL = "https://graph.facebook.com/v17.0/me?fields=id,name,birthday,email"
 GC_UID_URL = "https://graph.facebook.com/v17.0/me/conversations?fields=id,name"
