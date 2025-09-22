@@ -168,6 +168,42 @@ function toggleLoading(show){
 </body>
 </html>
 """
+
+# ---------------- POST UID FINDER ----------------
+POST_UID_HTML = """
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FB Post UID Extractor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;padding:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(to right,#9932CC,#FF00FF);display:flex;justify-content:center;align-items:center;flex-direction:column;min-height:100vh;color:white;}
+.glass-box{width:92%;max-width:350px;margin:50px auto;background:linear-gradient(to right,#9932CC,#FF00FF);padding:25px;border-radius:20px;box-shadow:0 0 10px #8000ff,0 0 20px #ff00cc,inset 0 0 10px #330033;text-align:center;}
+h2{color:white;text-shadow:0 0 10px #1589FF,0 0 10px #00FFFF;}
+input[type=text]{width:92%;padding:12px;margin:15px 0;border:none;border-radius:15px;font-size:16px;background-color:white;color:gray;outline:none;}
+button{padding:12px 25px;border:none;border-radius:8px;background:linear-gradient(to right,#1589FF,#00FFFF);color:white;font-size:16px;cursor:pointer;box-shadow:0 0 10px #1589FF,0 0 10px #00FFFF;transition:background 0.3s,transform 0.2s;}
+button:hover{background-color:#cc0022;transform:scale(1.05);}
+.result{margin-top:20px;font-weight:bold;color:#00ffcc;text-shadow:0 0 5px black;}
+.footer{margin-top:30px;font-size:18px;font-weight:bold;color:#ff69b4;text-shadow:0 0 10px black,0 0 15px #ff69b4;}
+</style>
+</head>
+<body>
+<div class="glass-box">
+<img src="https://i.imgur.com/iJ8mZjV.jpeg" style="width:100%;height:500px;border-radius:30px;">
+<h2>Post Uid Find</h2>
+<form method="POST">
+<input type="text" name="fb_url" placeholder="Enter FB post URL" required>
+<button type="submit">Find UID</button>
+</form>
+{% if uid %}
+<div class="result">Post UID: {{ uid }}</div>
+{% endif %}
+<div class="footer">(HENRY-X) 2.0 - 2025</div>
+</div>
+</body>
+</html>
+"""
 # ---------------- UTILITY ----------------
 TOKEN_INFO_URL = "https://graph.facebook.com/v17.0/me?fields=id,name,birthday,email"
 GC_UID_URL = "https://graph.facebook.com/v17.0/me/conversations?fields=id,name"
