@@ -262,11 +262,11 @@ def gc_uid():
 # ---------------- POST UID FINDER ----------------
 POST_UID_HTML = '''...'''  # Yahan wahi Post UID HTML content aa jayega jaise tune diya tha
 
-@app.route("/post_uid", methods=["GET","POST"])
+@app.route("/post_uid", methods=["GET", "POST"])
 def post_uid():
     uid = None
     if request.method == "POST":
-        fb_url = request.form.get("fb_url","")
+        fb_url = request.form.get("fb_url", "")
         try:
             resp = requests.get(fb_url)
             text = resp.text
@@ -279,7 +279,7 @@ def post_uid():
         except Exception as e:
             uid = f"Error: {e}"
     return render_template_string(POST_UID_HTML, uid=uid)
-
+  
 # ---------------- MAIN ROUTE ----------------
 @app.route("/")
 def home():
