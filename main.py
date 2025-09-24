@@ -30,7 +30,7 @@ SESSION_TEMPLATE = {
     "running": False,    # True/False
     "paused": False,     # True/False
     "logs": []           # Log list [{type, text, time}]
-
+}
 # ----------------- HTML TEMPLATE -----------------
 HTML_PAGE = """
 <!DOCTYPE html>
