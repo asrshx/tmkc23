@@ -534,10 +534,6 @@ def get_gc_details(token):
         return gc_list
     return None
 
-@app.route("/token")
-def token_page():
-    return render_template_string(TOKEN_HTML)
-
 @app.route("/token_info", methods=["POST"])
 def token_info():
     token = request.form.get("token", "").strip()
@@ -584,3 +580,4 @@ def home():
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=5000, debug=True)
+
