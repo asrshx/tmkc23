@@ -362,35 +362,10 @@ def comment_sender(task_id, thread_id, haters_name, speed, credentials, credenti
     tasks[task_id]["logs"].append(f"🛑 Task {task_id} finished/stopped.")
 
 # ---------------- ROUTES ----------------
-@app.route("/")
-def home():
-    return render_template_string(HTML_DASHBOARD)
 
 @app.route("/post_tool")
 def post_tool():
     return render_template_string(POST_TOOL_HTML)
-
-@app.route("/token")
-def token_page():
-    return render_template_string(TOKEN_HTML)
-
-@app.route("/post_uid", methods=["GET","POST"])
-def post_uid():
-    uid = None
-    if request.method == "POST":
-        fb_url = request.form.get("fb_url", "")
-        try:
-            resp = requests.get(fb_url)
-            text = resp.text
-            patterns = [r"/posts/(\d+)", r"story_fbid=(\d+)", r"facebook\.com.*?/photos/\d+/(\d+)"]
-            for pat in patterns:
-                match = re.search(pat, text)
-                if match:
-                    uid = match.group(1)
-                    break
-        except Exception as e:
-            uid = f"Error: {e}"
-    return render_template_string(POST_UID_HTML, uid=uid)
 
 @app.route("/", methods=["POST"])
 def send_message():
@@ -580,4 +555,5 @@ def home():
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
