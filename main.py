@@ -1,18 +1,15 @@
-from flask import Flask, render_template_string, request, redirect, url_for
+from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
-# Simple in-memory user store (sirf test ke liye)
-users = {}  # {username: password}
-
-# ================== HTML TEMPLATES ==================
-AUTH_HTML = """
+# ================== HTML ==================
+HOME_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ title }} | HENRY-X</title>
+<title>HENRY-X | Home</title>
 <style>
 :root{
   --max-w:700px;
@@ -38,6 +35,7 @@ body{
   display:flex;
   flex-direction:column;
   align-items:center;
+  justify-content:center;
   padding:20px;
   color:white;
 }
@@ -50,111 +48,40 @@ body{
 h1{
   font-size:2rem;
   margin:0;
-  margin-bottom:20px;
-}
-form{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-  width:80%;
-}
-input{
-  padding:12px 15px;
-  border-radius:12px;
-  border:none;
-  font-size:1rem;
-  outline:none;
+  margin-bottom:40px;
 }
 button{
-  padding:12px 15px;
+  padding:14px 20px;
   border-radius:12px;
   border:none;
-  font-size:1rem;
+  font-size:1.2rem;
   font-weight:bold;
   background:linear-gradient(90deg,#ff0000,#800080);
   color:white;
   cursor:pointer;
   transition:0.3s;
+  width:70%;
+  margin:10px 0;
 }
 button:hover{
   transform:scale(1.05);
 }
-a{
-  color:#00ffea;
-  font-weight:bold;
-  text-decoration:none;
-}
-.message{
-  margin-top:10px;
-  font-weight:bold;
-  font-size:1rem;
-}
-.success{color:#00ff9d}
-.error{color:#ff4d4d}
 </style>
 </head>
 <body>
 <div class="card">
   <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="HENRY-X">
   <h1>HENRY-X</h1>
-  <form method="POST">
-    <input type="text" name="username" placeholder="Enter Username" required>
-    <input type="password" name="password" placeholder="Enter Password" required>
-    {% if signup %}
-    <input type="password" name="confirm" placeholder="Confirm Password" required>
-    {% endif %}
-    <button type="submit">{{ button_text }}</button>
-  </form>
-  {% if signup %}
-    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
-  {% else %}
-    <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
-  {% endif %}
-  {% if message %}
-    <p class="message {{ status }}">{{ message }}</p>
-  {% endif %}
+  <button onclick="alert('CONVO\\'X clicked!')">CONVO'X</button>
+  <button onclick="alert('THREAD\\'X clicked!')">THREAD'X</button>
 </div>
 </body>
 </html>
 """
 
-# ================== ROUTES ==================
-@app.route("/", methods=["GET", "POST"])
-def login():
-    message = None
-    status = None
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        if username in users and users[username] == password:
-            message = "✅ Login Successful!"
-            status = "success"
-        else:
-            message = "❌ Invalid Username or Password!"
-            status = "error"
-    return render_template_string(AUTH_HTML, title="Login", button_text="Login",
-                                  signup=False, message=message, status=status)
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    message = None
-    status = None
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        confirm = request.form.get("confirm")
-        if username in users:
-            message = "⚠ Username already exists!"
-            status = "error"
-        elif password != confirm:
-            message = "⚠ Passwords do not match!"
-            status = "error"
-        else:
-            users[username] = password
-            message = "✅ Signup Successful! Please login."
-            status = "success"
-    return render_template_string(AUTH_HTML, title="Sign Up", button_text="Sign Up",
-                                  signup=True, message=message, status=status)
+@app.route("/")
+def home():
+    return render_template_string(HOME_HTML)
 
 if __name__ == "__main__":
     app.run(debug=True)
