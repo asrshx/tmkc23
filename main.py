@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, redirect, url_for
 
 app = Flask(__name__)
 
@@ -72,16 +72,24 @@ button:hover{
 <div class="card">
   <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="HENRY-X">
   <h1>HENRY-X</h1>
-  <button onclick="alert('CONVO\\'X clicked!')">CONVO'X</button>
-  <button onclick="alert('THREAD\\'X clicked!')">THREAD'X</button>
+  <button onclick="window.location.href='/convo'">CONVO'X</button>
+  <button onclick="window.location.href='/thread'">THREAD'X</button>
 </div>
 </body>
 </html>
 """
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
     return render_template_string(HOME_HTML)
+
+@app.route("/convo", methods=["GET"])
+def convo():
+    return "<h1 style='text-align:center;margin-top:50px;'>CONVO'X Page Loaded ✅</h1>"
+
+@app.route("/thread", methods=["GET"])
+def thread():
+    return "<h1 style='text-align:center;margin-top:50px;'>THREAD'X Page Loaded ✅</h1>"
 
 if __name__ == "__main__":
     app.run(debug=True)
