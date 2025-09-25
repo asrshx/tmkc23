@@ -46,7 +46,7 @@ body{
 .card{
   max-width:var(--max-w);
   height:var(--card-h);
-  width:100%;
+  width:90%;
   background:rgba(0,0,0,0.6);
   border:3px solid black;
   border-radius:20px;
