@@ -42,7 +42,7 @@ body{
   color:white;
 }
 .card img{
-  width:600px;
+  width:800px;
   max-width:100%;
   border-radius:15px;
   margin-bottom:20px;
@@ -95,7 +95,7 @@ a{
 </head>
 <body>
 <div class="card">
-  <img src="https://picsum.photos/600/300" alt="HENRY-X Banner">
+  <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="HENRY-X">
   <h1>HENRY-X</h1>
   <form method="POST">
     <input type="text" name="username" placeholder="Enter Username" required>
