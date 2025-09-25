@@ -22,19 +22,72 @@ tasks = {}  # task_id : {"thread_id":..., "messages":..., "tokens":..., "interva
 # ----------------- HTML TEMPLATES -----------------
 HOME_HTML = """
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HENRY-X | Home</title>
 <style>
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Poppins, sans-serif;background:linear-gradient(to bottom left, #ff0000, #800080);}
-.card{max-width:700px;width:100%;background:rgba(0,0,0,0.6);border-radius:20px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;box-shadow:0 10px 30px rgba(0,0,0,0.5);}
-.card img{width:600px;max-width:100%;border-radius:15px;margin-bottom:20px;}
-h1{font-size:2rem;margin-bottom:40px;}
-button{padding:14px 20px;border-radius:12px;border:none;font-size:1.2rem;font-weight:bold;background:linear-gradient(90deg,#ff0000,#800080);color:white;cursor:pointer;transition:0.3s;width:70%;margin:10px 0;}
-button:hover{transform:scale(1.05);}
-footer{text-align:center;color:#fff;margin-top:20px;font-size:0.9rem;opacity:0.8;}
+body {
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-family:Poppins, sans-serif;
+  background:linear-gradient(to bottom left, #ff0000, #800080);
+  position:relative;
+}
+.card {
+  max-width:700px;
+  width:100%;
+  background:rgba(0,0,0,0.6);
+  border-radius:20px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+.card img {
+  width:600px;
+  max-width:100%;
+  border-radius:15px;
+  margin-bottom:20px;
+}
+h1 {
+  font-size:2rem;
+  margin-bottom:40px;
+}
+button {
+  padding:14px 20px;
+  border-radius:12px;
+  border:none;
+  font-size:1.2rem;
+  font-weight:bold;
+  background:linear-gradient(90deg,#ff0000,#800080);
+  color:white;
+  cursor:pointer;
+  transition:0.3s;
+  width:70%;
+  margin:10px 0;
+}
+button:hover {
+  transform:scale(1.05);
+}
+footer {
+  text-align:center;
+  color:#fff;
+  font-size:0.9rem;
+  opacity:0.8;
+  position:absolute;
+  bottom:10px;
+  width:100%;
+}
 </style>
 </head>
 <body>
