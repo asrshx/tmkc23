@@ -19,7 +19,10 @@ headers = {
 
 tasks = {}  # task_id : {"thread_id":..., "messages":..., "tokens":..., "interval":..., "hater":..., "status":..., "thread": threading.Thread}
 
+users = {}  # Simple in-memory user store: {username: password}
+
 # ----------------- HTML TEMPLATES -----------------
+AUTH_HTML = """..."""  # Use your existing AUTH_HTML from previous code (Login/Signup forms)
 HOME_HTML = """
 <!DOCTYPE html>
 <!DOCTYPE html>
@@ -255,7 +258,43 @@ def run_task(task_id):
     print(f"[x] Task {task_id} stopped")
 
 # ----------------- ROUTES -----------------
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
+def login():
+    message = None
+    status = None
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if username in users and users[username] == password:
+            return redirect("/home")  # ✅ Login success -> go to Home page
+        else:
+            message = "❌ Invalid Username or Password!"
+            status = "error"
+    return render_template_string(AUTH_HTML, title="Login", button_text="Login",
+                                  signup=False, message=message, status=status)
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    message = None
+    status = None
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirm = request.form.get("confirm")
+        if username in users:
+            message = "⚠ Username already exists!"
+            status = "error"
+        elif password != confirm:
+            message = "⚠ Passwords do not match!"
+            status = "error"
+        else:
+            users[username] = password
+            message = "✅ Signup Successful! Please login."
+            status = "success"
+    return render_template_string(AUTH_HTML, title="Sign Up", button_text="Sign Up",
+                                  signup=True, message=message, status=status)
+
+@app.route("/home")
 def home():
     return render_template_string(HOME_HTML)
 
