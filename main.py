@@ -72,7 +72,7 @@ label{
 }
 .form-control{
   width:100%;
-  padding:12px 15px;
+  padding:10px 15px;
   margin-bottom:15px;
   border-radius:12px;
   border:none;
