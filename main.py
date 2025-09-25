@@ -42,7 +42,7 @@ body{
   color:white;
 }
 .card img{
-  width:800px;
+  width:600px;
   max-width:100%;
   border-radius:15px;
   margin-bottom:20px;
