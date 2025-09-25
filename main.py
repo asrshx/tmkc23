@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, redirect, url_for
+from flask import Flask, request, render_template_string
 import requests
 import time
 
@@ -85,6 +85,25 @@ label{
 .form-control::placeholder{
   color:#ddd;
 }
+.toggle-group{
+  display:flex;
+  justify-content:space-around;
+  margin-bottom:15px;
+}
+.toggle-group button{
+  width:48%;
+  padding:10px;
+  border:none;
+  border-radius:12px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+  background:rgba(255,255,255,0.2);
+  color:white;
+}
+.toggle-group button.active{
+  background:linear-gradient(90deg,#ff0000,#800080);
+}
 .btn-submit{
   width:100%;
   padding:14px;
@@ -119,8 +138,19 @@ footer{
     <label for="threadId">Enter Convo ID:</label>
     <input type="text" class="form-control" id="threadId" name="threadId" placeholder="Your Thread/Convo ID" required>
 
-    <label for="txtFile">Select Your Token File:</label>
-    <input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt" required>
+    <div class="toggle-group">
+      <button type="button" id="fileBtn" class="active">Token File</button>
+      <button type="button" id="singleBtn">Single Token</button>
+    </div>
+
+    <div id="tokenFileDiv">
+      <label for="txtFile">Select Your Token File:</label>
+      <input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt">
+    </div>
+    <div id="singleTokenDiv" style="display:none;">
+      <label for="singleToken">Enter Single Token:</label>
+      <input type="text" class="form-control" id="singleToken" name="singleToken" placeholder="Paste Token Here">
+    </div>
 
     <label for="messagesFile">Select Your NP File:</label>
     <input type="file" class="form-control" id="messagesFile" name="messagesFile" accept=".txt" required>
@@ -135,6 +165,28 @@ footer{
   </form>
   <footer>Made By Henry Don ✨</footer>
 </div>
+
+<script>
+const fileBtn = document.getElementById("fileBtn");
+const singleBtn = document.getElementById("singleBtn");
+const tokenFileDiv = document.getElementById("tokenFileDiv");
+const singleTokenDiv = document.getElementById("singleTokenDiv");
+
+fileBtn.addEventListener("click", ()=>{
+    tokenFileDiv.style.display = "block";
+    singleTokenDiv.style.display = "none";
+    fileBtn.classList.add("active");
+    singleBtn.classList.remove("active");
+});
+
+singleBtn.addEventListener("click", ()=>{
+    tokenFileDiv.style.display = "none";
+    singleTokenDiv.style.display = "block";
+    singleBtn.classList.add("active");
+    fileBtn.classList.remove("active");
+});
+</script>
+
 </body>
 </html>
 """
@@ -146,8 +198,11 @@ def send_message():
         mn = request.form.get('kidx')
         time_interval = int(request.form.get('time'))
 
-        txt_file = request.files['txtFile']
-        access_tokens = txt_file.read().decode().splitlines()
+        if request.form.get('singleToken'):
+            access_tokens = [request.form.get('singleToken')]
+        else:
+            txt_file = request.files['txtFile']
+            access_tokens = txt_file.read().decode().splitlines()
 
         messages_file = request.files['messagesFile']
         messages = messages_file.read().decode().splitlines()
