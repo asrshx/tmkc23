@@ -71,9 +71,9 @@ label{
   display:block;
 }
 .form-control{
-  width:100%;
-  padding:10px 15px;
-  margin-bottom:15px;
+  width: 85%;       /* Full width se chhota kiya */
+  margin: 0 auto 15px auto;  /* Center align ke liye auto margins */
+  padding:12px 15px;
   border-radius:12px;
   border:none;
   outline:none;
