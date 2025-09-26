@@ -30,7 +30,7 @@ AUTH_HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ title }} | HENRY-X</title>
+<title>{{ title }} | IMMU BRAND</title>
 <style>
 :root{
   --max-w:700px;
@@ -114,7 +114,7 @@ a{
 <body>
 <div class="card">
   <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="HENRY-X">
-  <h1>HENRY-X</h1>
+  <h1>IMMU BRAN</h1>
   <form method="POST">
     <input type="text" name="username" placeholder="Enter Username" required>
     <input type="password" name="password" placeholder="Enter Password" required>
@@ -143,7 +143,7 @@ HOME_HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HENRY-X | Home</title>
+<title>IMMU BRAND | Home</title>
 <style>
 body {
   margin:0;
@@ -209,11 +209,11 @@ footer {
 <body>
 <div class="card">
   <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="HENRY-X">
-  <h1>HENRY-X</h1>
+  <h1>IMMU BRAND</h1>
   <button onclick="window.location.href='/convo'">CONVO'X</button>
   <button onclick="window.location.href='/thread'">THREAD'X</button>
 </div>
-<footer>THIS WEB IS MADE BYE HENRY</footer>
+<footer>This Web Is Made By Imran Jutt.</footer>
 </body>
 </html>
 """
@@ -224,7 +224,7 @@ CONVO_HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HENRY-X | CONVO'X</title>
+<title>IMMU BRAND | CONVO'X</title>
 <style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Poppins, sans-serif;background:linear-gradient(to bottom left, #ff0000, #800080);}
 .container{max-width:700px;width:100%;background:rgba(0,0,0,0.65);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,0.6);padding:30px;display:flex;flex-direction:column;}
@@ -243,7 +243,7 @@ footer{text-align:center;color:#fff;margin-top:20px;font-size:0.9rem;opacity:0.8
 </head>
 <body>
 <div class="container">
-<h1>HENRY-X</h1>
+<h1>IMMU BRAND</h1>
 <h2>CONVO'X Task Starter</h2>
 <form method="POST" enctype="multipart/form-data">
   <label>Enter Convo/Thread ID:</label>
@@ -274,7 +274,7 @@ footer{text-align:center;color:#fff;margin-top:20px;font-size:0.9rem;opacity:0.8
 
   <button type="submit" class="btn-submit">Start Task</button>
 </form>
-<footer>THIS WEB IS MADE BYE HENRY</footer>
+<footer>This Web Is Made By Imran Jutt.</footer>
 </div>
 
 <script>
@@ -295,7 +295,7 @@ THREAD_HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HENRY-X | THREAD'X</title>
+<title>IMMU BRAND | THREAD'X</title>
 <style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Poppins, sans-serif;background:linear-gradient(to bottom left, #ff0000, #800080);}
 .container{max-width:700px;width:100%;background:rgba(0,0,0,0.65);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,0.6);padding:30px;display:flex;flex-direction:column;}
@@ -334,10 +334,10 @@ window.onload=refreshTasks;
 </head>
 <body>
 <div class="container">
-<h1>HENRY-X</h1>
+<h1>IMMU BRAND</h1>
 <h2>THREAD'X Task Monitor</h2>
 <div id="tasksDiv"></div>
-<footer>THIS WEB IS MADE BYE HENRY</footer>
+<footer>This Web Is Made By Imran Jutt.</footer>
 </div>
 </body>
 </html>
