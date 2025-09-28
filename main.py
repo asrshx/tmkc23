@@ -132,8 +132,6 @@ MAIN_HTML = '''
 </html>
 '''
 
-# ----------------- HTML TEMPLATES -----------------
-AUTH_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
