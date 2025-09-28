@@ -22,7 +22,7 @@ PANEL_HTML = """
   .card {
     width: 90%;
     max-width: 1100px;
-    height: 1100px;
+    height: 950px;
     background: rgba(0,0,0,0.6);
     border-radius: 25px;
     display: flex;
