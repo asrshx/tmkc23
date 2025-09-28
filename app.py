@@ -1,559 +1,573 @@
-from flask import Flask, render_template_string, request, jsonify, redirect, url_for
-import requests
-import re
-import threading
-import time
-import uuid
+from flask import Flask, render_template_string, request, redirect, url_for, jsonify, session
+import threading, time, requests, secrets, os
 
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)
 
-# ---------------- DASHBOARD ----------------
-HTML_DASHBOARD = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HENRY-X Panel</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Italic&display=swap');
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:radial-gradient(circle,#050505,#000);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;color:#fff;}
-header{text-align:center;margin-bottom:2rem;}
-header h1{font-size:2.5rem;font-weight:bold;letter-spacing:2px;font-family:sans-serif;color:white;}
-.container{display:flex;flex-wrap:wrap;gap:2rem;justify-content:center;width:100%;}
-.card{position:relative;width:360px;height:460px;border-radius:18px;overflow:hidden;background:#111;cursor:pointer;box-shadow:0 0 25px rgba(255,0,0,0.2);transition:transform 0.3s ease;}
-.card:hover{transform:scale(1.03);}
-.card video{width:100%;height:100%;object-fit:cover;filter:brightness(0.85);}
-.overlay{position:absolute;bottom:-100%;left:0;width:100%;height:100%;background:linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%);display:flex;flex-direction:column;justify-content:flex-end;padding:25px;opacity:0;transition:all 0.4s ease-in-out;z-index:2;}
-.card.active .overlay{bottom:0;opacity:1;}
-.overlay h3{font-family:"Russo One",sans-serif;font-size:28px;margin-bottom:10px;text-shadow:0 0 15px #ff0033,0 0 25px rgba(255,0,0,0.7);color:#fff;letter-spacing:1px;animation:slideUp 0.4s ease forwards;}
-.overlay p{font-family:'Fira Sans Italic',sans-serif;font-size:15px;color:#f2f2f2;margin-bottom:15px;opacity:0;animation:fadeIn 0.6s ease forwards;animation-delay:0.2s;}
-.open-btn{align-self:center;background:linear-gradient(45deg,#ff0040,#ff1a66);border:none;padding:10px 25px;border-radius:25px;font-size:16px;color:white;cursor:pointer;font-family:"Russo One",sans-serif;box-shadow:0 0 15px rgba(255,0,0,0.7);transition:all 0.3s ease;opacity:0;animation:fadeIn 0.6s ease forwards;animation-delay:0.4s;}
-.open-btn:hover{transform:scale(1.1);box-shadow:0 0 25px rgba(255,0,0,1);}
-@keyframes slideUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-footer{margin-top:2rem;font-size:1rem;font-family:sans-serif;color:#888;text-align:center;}
-</style>
-</head>
-<body>
-<header><h1>HENRY-X</h1></header>
-<div class="container">
-
-<!-- Card 1 -->
-<div class="card" onclick="toggleOverlay(this)">
-  <video autoplay muted loop playsinline>
-    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/223.mp4" type="video/mp4">
-  </video>
-  <div class="overlay">
-    <h3>Convo 3.0</h3>
-    <p>Non Stop Convo By Henry | Multy + Single Bot</p>
-    <button class="open-btn" onclick="event.stopPropagation(); window.open('https://ambitious-haleigh-zohan-6ed14c8a.koyeb.app/','_blank')">OPEN</button>
-  </div>
-</div>
-
-<!-- Card 2 (Updated to open your Post Tool directly) -->
-<div class="card" onclick="toggleOverlay(this)">
-  <video autoplay muted loop playsinline>
-    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/Anime.mp4" type="video/mp4">
-  </video>
-  <div class="overlay">
-    <h3>Post 3.0</h3>
-    <p>Multy Cookie + Multy Token | Thread Stop/Resume/Pause</p>
-    <button class="open-btn" onclick="event.stopPropagation(); window.open('/','_blank')">OPEN</button>
-  </div>
-</div>
-
-<!-- Card 3 -->
-<div class="card" onclick="toggleOverlay(this)">
-  <video autoplay muted loop playsinline>
-    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/GOKU%20_%20DRAGON%20BALZZ%20_%20anime%20dragonballz%20dragonballsuper%20goku%20animeedit%20animetiktok.mp4" type="video/mp4">
-  </video>
-  <div class="overlay">
-    <h3>Token Checker 3.0</h3>
-    <p>Token Checker + GC UID Extractor Bot</p>
-    <button class="open-btn" onclick="event.stopPropagation(); window.open('/token','_blank')">OPEN</button>
-  </div>
-</div>
-
-<!-- Card 4 -->
-<div class="card" onclick="toggleOverlay(this)">
-  <video autoplay muted loop playsinline>
-    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/SOLO%20LEVELING.mp4" type="video/mp4">
-  </video>
-  <div class="overlay">
-    <h3>Post UID 2.0</h3>
-    <p>Enter Your Post Link & Extract Post UID Easily</p>
-    <button class="open-btn" onclick="event.stopPropagation(); window.open('/post_uid','_blank')">OPEN</button>
-  </div>
-</div>
-
-</div>
-<footer>Created by:HENRY-X</footer>
-<script>
-function toggleOverlay(card){card.classList.toggle('active');}
-</script>
-</body>
-</html>
-"""
-
-# ---------------- POST TOOL (CARD 2 TARGET) ----------------
-POST_TOOL_HTML = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Henry Post Tool</title>
-<style>
-body {background: linear-gradient(to right, #9932CC, #FF00FF); font-family: Arial, sans-serif; color: white;}
-.container {background-color: rgba(0,0,0,0.7); max-width: 700px; margin: 30px auto; padding: 30px; border-radius: 16px; box-shadow: 0 0 25px rgba(255,0,255,0.4);}
-input, select {width: 100%; padding: 14px; margin: 8px 0; border-radius: 10px; border: none; font-size: 16px;}
-.button-group {display:flex; flex-direction:column; align-items:center; margin-top:15px;}
-.button-group button {width: 85%; max-width: 400px; padding: 14px; margin: 10px 0; font-size: 18px; font-weight:bold; border:none; border-radius: 10px; cursor:pointer; transition: transform 0.2s ease, box-shadow 0.3s ease;}
-.button-group button:hover {transform: scale(1.05); box-shadow: 0 0 20px #fff;}
-.start-btn {background: #FF1493; color: white;}
-.tasks-btn {background: #00CED1; color:white;}
-</style>
-</head>
-<body>
-<div class="container">
-    <h2 style="text-align:center; margin-bottom: 20px; font-size:28px;">🚀 HENRY-X 3.0 🚀</h2>
-    <form action="/" method="post" enctype="multipart/form-data">
-        <label>Post / Thread ID</label>
-        <input type="text" name="threadId" required>
-        <label>Enter Prefix</label>
-        <input type="text" name="kidx" required>
-        <label>Choose Method</label>
-        <select name="method" id="method" onchange="toggleFileInputs()" required>
-            <option value="token">Token</option>
-            <option value="cookies">Cookies</option>
-        </select>
-        <div id="tokenDiv">
-            <label>Select Token File</label>
-            <input type="file" name="tokenFile" accept=".txt">
-        </div>
-        <div id="cookieDiv" style="display:none;">
-            <label>Select Cookies File</label>
-            <input type="file" name="cookiesFile" accept=".txt">
-        </div>
-        <label>Comments File</label>
-        <input type="file" name="commentsFile" accept=".txt" required>
-        <label>Delay (Seconds)</label>
-        <input type="number" name="time" min="1" required>
-        <div class="button-group">
-            <button type="submit" class="start-btn">▶ Start Task</button>
-            <button type="button" class="tasks-btn" onclick="window.location.href='/tasks'">📋 View Tasks</button>
-        </div>
-    </form>
-</div>
-<script>
-function toggleFileInputs() {
-    const method = document.getElementById('method').value;
-    document.getElementById('tokenDiv').style.display = method === 'token' ? 'block' : 'none';
-    document.getElementById('cookieDiv').style.display = method === 'cookies' ? 'block' : 'none';
-}
-</script>
-</body>
-</html>
-'''
-
-# ---------------- TOKEN CHECKER PAGE ----------------
-TOKEN_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>2025 GC UID Finder</title>
-<style>
-body{font-family:'Orbitron',sans-serif;background:radial-gradient(circle at top,#ff00ff,#6600ff,#000);color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;}
-.glass-container{background:rgba(255,255,255,0.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:25px;width:90%;max-width:420px;text-align:center;}
-h1{margin-bottom:10px;font-size:22px;text-shadow:0 0 10px #ff00ff;}
-input{width:95%;padding:12px;border-radius:12px;border:none;outline:none;margin-bottom:15px;font-size:14px;text-align:center;background:rgba(255,255,255,0.1);color:#fff;box-shadow:inset 0 0 10px rgba(255,0,255,0.3);}
-input::placeholder{color:#ddd;}
-.btn{display:block;width:100%;background:linear-gradient(90deg,#ff00ff,#6600ff);color:white;border:none;border-radius:12px;padding:12px;font-size:15px;margin:8px 0;cursor:pointer;box-shadow:0 0 12px #ff00ff;transition:transform 0.2s ease,box-shadow 0.2s ease;}
-.btn:hover{transform:scale(1.05);box-shadow:0 0 20px #ff00ff,0 0 40px #6600ff;}
-.result-box{background:rgba(0,0,0,0.4);border-radius:12px;padding:10px;margin-top:12px;text-align:left;box-shadow:inset 0 0 10px rgba(255,0,255,0.3);}
-.copy-btn{background:#ff00ff;color:white;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;margin-top:5px;transition:0.2s ease;}
-.copy-btn:hover{background:#ffffff;color:#6600ff;}
-.spinner{margin:15px auto;border:4px solid rgba(255,255,255,0.2);border-top:4px solid #ff00ff;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;}
-@keyframes spin{100%{transform:rotate(360deg);}}
-</style>
-</head>
-<body>
-<div class="glass-container">
-<h1>⚡ 2025 GC UID Finder</h1>
-<input type="text" id="token" placeholder="Paste Your Facebook Token"/>
-<button class="btn" onclick="fetchTokenInfo()">🔑 Check Token</button>
-<button class="btn" onclick="fetchGcUids()">💬 Find GC UID</button>
-<div id="loading" class="spinner" style="display:none;"></div>
-<div id="tokenResult" class="result-box"></div>
-<div id="gcResult" class="result-box"></div>
-</div>
-<script>
-function fetchTokenInfo(){
-  const token=document.getElementById("token").value.trim();
-  if(!token)return alert("Please enter a token!");
-  toggleLoading(true);
-  fetch("/token_info",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"token="+encodeURIComponent(token)})
-  .then(res=>res.json())
-  .then(data=>{
-    toggleLoading(false);
-    const result=document.getElementById("tokenResult");
-    result.innerHTML=data.error?`<p style="color:#ff4444;">❌ ${data.error}</p>`:`<p><b>✅ Name:</b> ${data.name}</p><p><b>ID:</b> ${data.id}</p><p><b>DOB:</b> ${data.dob}</p><p><b>Email:</b> ${data.email}</p>`;
-  });
-}
-function fetchGcUids(){
-  const token=document.getElementById("token").value.trim();
-  if(!token)return alert("Please enter a token!");
-  toggleLoading(true);
-  fetch("/gc_uid",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"token="+encodeURIComponent(token)})
-  .then(res=>res.json())
-  .then(data=>{
-    toggleLoading(false);
-    const result=document.getElementById("gcResult");
-    result.innerHTML="<h3>Messenger Group Chats</h3>";
-    if(data.error){result.innerHTML+=`<p style="color:#ff4444;">❌ ${data.error}</p>`;}else{
-      data.gc_data.forEach((gc,i)=>{
-        result.innerHTML+=`<div style="margin-top:10px;border-bottom:1px solid rgba(255,255,255,0.2);padding-bottom:5px;">
-<p><b>GC ${i+1}:</b> ${gc.gc_name}</p>
-<p><b>UID:</b> ${gc.gc_uid}</p>
-<button class='copy-btn' onclick="navigator.clipboard.writeText('${gc.gc_uid}').then(()=>alert('✅ UID copied!'))">📋 Copy UID</button>
-</div>`;
-      });
-    }
-  });
-}
-function toggleLoading(show){
-    document.getElementById("loading").style.display = show ? "block" : "none";
-}
-</script>
-</body>
-</html>
-"""
-
-# ---------------- POST UID FINDER (NEW ONE YOU PROVIDED) ----------------
-POST_UID_HTML = '''
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>FB Post UID Extractor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #9932CC, #FF00FF);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      min-height: 100vh;
-      color: white;
-    }
-    .glass-box {
-      width: 92%;
-      max-width: 350px;
-      margin: 50px auto;
-      background: linear-gradient(to right, #9932CC, #FF00FF);
-      padding: 25px;
-      border-radius: 20px;
-      box-shadow: 0 0 10px #8000ff, 0 0 20px #ff00cc, inset 0 0 10px #330033;
-      text-align: center;
-    }
-    h2 {
-      color: linear-gradient(to right, #1589FF, #00FFFF);
-      text-shadow: 0 0 10px #1589FF, 0 0 10px #00FFFF;
-    }
-    input[type=text] {
-      width: 92%;
-      padding: 12px;
-      margin: 15px 0;
-      border: none;
-      border-radius: white 15px;
-      font-size: 16px white;
-      background-color: white;
-      color: gray;
-      outline: none;
-    }
-    button {
-      padding: 12px 25px;
-      border: none;
-      border-radius: 8px;
-      background: linear-gradient(to right, #1589FF, #00FFFF);
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 0 10px #1589FF, 0 0 10px #00FFFF;
-      transition: background 0.3s, transform 0.2s;
-    }
-    button:hover {
-      background-color: #cc0022;
-      transform: scale(1.05);
-    }
-    .result {
-      margin-top: 20px;
-      font-weight: bold;
-      color: #00ffcc;
-      text-shadow: 0 0 5px black;
-    }
-    .footer {
-      margin-top: 30px;
-      font-size: 18px;
-      font-weight: bold;
-      color: #ff69b4;
-      text-shadow: 0 0 10px black, 0 0 15px #ff69b4;
-    }
-  </style>
-</head>
-<body>
-  <div class="glass-box">
-  <img src="https://i.imgur.com/iJ8mZjV.jpeg" style="width: 100%; height: 500px; border-radius: 30px;">
-    <h2>Post Uid Find</h2>
-    <form method="POST">
-      <input type="text" name="fb_url" placeholder="Enter FB post URL" required>
-      <button type="submit">Find UID</button>
-    </form>
-    {% if uid %}
-    <div class="result">Post UID: {{ uid }}</div>
-    {% endif %}
-    <div class="footer">(HENRY-X) 2.0 - 2025</div>
-  </div>
-</body>
-</html>
-'''
-
-# ---------------- TASK MANAGEMENT ----------------
-tasks = {}
-
+# ----------------- GLOBALS -----------------
 headers = {
     'Connection': 'keep-alive',
     'Cache-Control': 'max-age=0',
     'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+    'referer': 'www.google.com'
 }
 
-def comment_sender(task_id, thread_id, haters_name, speed, credentials, credentials_type, comments):
-    post_url = f'https://graph.facebook.com/v15.0/{thread_id}/comments'
-    i = 0
-    while i < len(comments) and not tasks[task_id]["stop"]:
-        if tasks[task_id]["paused"]:
-            time.sleep(1)
-            continue
-        cred = credentials[i % len(credentials)]
-        parameters = {'message': f"{haters_name} {comments[i].strip()}"}
-        try:
-            if credentials_type == 'access_token':
-                parameters['access_token'] = cred
-                response = requests.post(post_url, json=parameters, headers=headers)
-            else:
-                headers['Cookie'] = cred
-                response = requests.post(post_url, data=parameters, headers=headers)
-            current_time = time.strftime("%Y-%m-%d %I:%M:%S %p")
-            msg = f"[{current_time}] Comment {i+1} {'✅ Sent' if response.ok else '❌ Failed'}"
-            tasks[task_id]["logs"].append(msg)
-        except Exception as e:
-            tasks[task_id]["logs"].append(f"[!] Error: {e}")
-        i += 1
-        time.sleep(speed)
-    tasks[task_id]["logs"].append(f"🛑 Task {task_id} finished/stopped.")
+tasks = {}
+users = {}
 
-# ---------------- ROUTES ----------------
-
-@app.route("/post_tool")
-def post_tool():
-    return render_template_string(POST_TOOL_HTML)
-
-@app.route("/", methods=["POST"])
-def send_message():
-    method = request.form['method']
-    thread_id = request.form['threadId']
-    haters_name = request.form['kidx']
-    speed = int(request.form['time'])
-    comments = request.files['commentsFile'].read().decode().splitlines()
-    if method == 'token':
-        credentials = request.files['tokenFile'].read().decode().splitlines()
-        credentials_type = 'access_token'
-    else:
-        credentials = request.files['cookiesFile'].read().decode().splitlines()
-        credentials_type = 'Cookie'
-    task_id = str(uuid.uuid4())[:8]
-    tasks[task_id] = {"paused": False, "stop": False, "info": {"thread_id": thread_id}, "logs": [], "start_time": time.strftime("%Y-%m-%d %H:%M:%S")}
-    t = threading.Thread(target=comment_sender, args=(task_id, thread_id, haters_name, speed, credentials, credentials_type, comments))
-    tasks[task_id]["thread"] = t
-    t.start()
-    return redirect(url_for('view_tasks'))
-
-# ---------------- TASKS PANEL ----------------
-@app.route('/tasks')
-def view_tasks():
-    return render_template_string('''
+# ----------------- MAIN CARD PAGE -----------------
+MAIN_HTML = '''
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Running Tasks</title>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMU JUTT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css" />
 <style>
-body {background: linear-gradient(to right, #000428, #004e92); font-family: 'Segoe UI', sans-serif; color:white; text-align:center;}
-h2 {margin:20px 0;}
-.tasks-container {display:flex; flex-wrap:wrap; justify-content:center; gap:20px; padding:20px;}
-.task-card {background: rgba(255,255,255,0.08); border-radius:16px; padding:20px; width:320px; box-shadow:0 0 20px rgba(0,255,255,0.4); transition:transform 0.2s;}
-.task-card:hover {transform:scale(1.03);}
-.status {margin:10px 0; font-weight:bold;}
-.btn-group {display:flex; justify-content:space-around; margin-top:10px;}
-.btn {padding:8px 12px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:14px; transition: all 0.2s;}
-.stop {background:#ff0033; color:white;}
-.pause {background:#ffa500; color:white;}
-.delete {background:#444; color:white;}
-.btn:hover {transform:scale(1.05);}
-.logs {background:#111; color:#0f0; text-align:left; margin-top:10px; padding:10px; border-radius:10px; max-height:150px; overflow:auto; font-size:13px;}
+body {
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(135deg, #000000, #2c2c2c);
+    margin: 0;
+    padding: 0;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+}
+h2 {
+    text-align: center;
+    font-size: 24px;
+    margin: 20px 0;
+    color: #ffde59;
+    text-shadow: 0 0 10px rgba(255, 222, 89, 0.8);
+}
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 25px;
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 30px rgba(255, 222, 89, 0.3);
+}
+.card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+.card h1 {
+    font-size: 16px;
+    margin: 15px;
+    color: #fff;
+}
+.button-34 {
+    background: #ffde59;
+    color: #000;
+    border-radius: 999px;
+    box-shadow: 0 4px 15px rgba(255, 222, 89, 0.5);
+    font-weight: bold;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    margin-bottom: 20px;
+    transition: background 0.3s ease;
+}
+.button-34:hover { background: #ffe98f; }
+.footer {
+    margin-top: 30px;
+    font-size: 14px;
+    text-align: center;
+    opacity: 0.7;
+}
+.footer a {
+    color: #ffde59;
+    text-decoration: none;
+}
 </style>
 </head>
 <body>
-<h2>📋 Your Tasks</h2>
-<div class="tasks-container" id="tasks"></div>
+    <h2>🔥 IMMU JUTT 🔥</h2>
+    <div class="card-container">
+        <div class="card">
+            <img src="https://i.imgur.com/IctLihG.png" alt="Card Image">
+            <h1>╰┈➤ CONVO SERVER - CLICK CHECK TO USE.</h1>
+            <button class="button-34" onclick="window.location.href='/login'">⊲ CHECK ⊳</button>
+        </div>
+        <div class="card">
+            <img src="https://i.imgur.com/IctLihG.png" alt="Card Image">
+            <h1>╰┈➤ POST SERVER - CLICK CHECK TO USE.</h1>
+            <button class="button-34" onclick="window.location.href='https://busy-marianna-sahilkoyeb-968101d8.koyeb.app/'">⊲ CHECK ⊳</button>
+        </div>
+    </div>
+    <div class="footer">
+        <p>© 2024 Henry Dwn. All Rights Reserved. | Made with ❤️ by <a href="#">IMMU JUTT</a></p>
+    </div>
+</body>
+</html>
+'''
+
+# ----------------- HTML PAGES -----------------
+
+AUTH_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }} | IMMU BRAND</title>
+<style>
+:root{
+  --max-w:700px;
+  --card-h:1000px;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:Poppins, sans-serif;
+  background:linear-gradient(to bottom left, #ff0000, #800080);
+}
+.card{
+  max-width:var(--max-w);
+  height:var(--card-h);
+  width:90%;
+  background:rgba(0,0,0,0.6);
+  border:3px solid black;
+  border-radius:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+  color:white;
+}
+.card img{
+  width:600px;
+  max-width:100%;
+  border-radius:15px;
+  margin-bottom:20px;
+}
+h1{
+  font-size:2rem;
+  margin:0;
+  margin-bottom:20px;
+}
+form{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+  width:80%;
+}
+input{
+  padding:12px 15px;
+  border-radius:12px;
+  border:none;
+  font-size:1rem;
+  outline:none;
+}
+button{
+  padding:12px 15px;
+  border-radius:12px;
+  border:none;
+  font-size:1rem;
+  font-weight:bold;
+  background:linear-gradient(90deg,#ff0000,#800080);
+  color:white;
+  cursor:pointer;
+  transition:0.3s;
+}
+button:hover{
+  transform:scale(1.05);
+}
+a{
+  color:#00ffea;
+  font-weight:bold;
+  text-decoration:none;
+}
+.message{
+  margin-top:10px;
+  font-weight:bold;
+  font-size:1rem;
+}
+.success{color:#00ff9d}
+.error{color:#ff4d4d}
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="HENRY-X">
+  <h1>IMMU BRAN</h1>
+  <form method="POST">
+    <input type="text" name="username" placeholder="Enter Username" required>
+    <input type="password" name="password" placeholder="Enter Password" required>
+    {% if signup %}
+    <input type="password" name="confirm" placeholder="Confirm Password" required>
+    {% endif %}
+    <button type="submit">{{ button_text }}</button>
+  </form>
+  {% if signup %}
+    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+  {% else %}
+    <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
+  {% endif %}
+  {% if message %}
+    <p class="message {{ status }}">{{ message }}</p>
+  {% endif %}
+</div>
+</body>
+</html>
+"""
+
+HOME_HTML = """
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMMU BRAND | Home</title>
+<style>
+body {
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-family:Poppins, sans-serif;
+  background:linear-gradient(to bottom left, #ff0000, #800080);
+  position:relative;
+}
+.card {
+  max-width:700px;
+  width:88%;
+  background:rgba(0,0,0,0.6);
+  border-radius:20px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+.card img {
+  width:600px;
+  max-width:100%;
+  border-radius:15px;
+  margin-bottom:20px;
+}
+h1 {
+  font-size:2rem;
+  margin-bottom:40px;
+}
+button {
+  padding:14px 20px;
+  border-radius:12px;
+  border:none;
+  font-size:1.2rem;
+  font-weight:bold;
+  background:linear-gradient(90deg,#ff0000,#800080);
+  color:white;
+  cursor:pointer;
+  transition:0.3s;
+  width:70%;
+  margin:10px 0;
+}
+button:hover {
+  transform:scale(1.05);
+}
+footer {
+  text-align:center;
+  color:#fff;
+  font-size:0.9rem;
+  opacity:0.8;
+  position:absolute;
+  bottom:10px;
+  width:100%;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="HENRY-X">
+  <h1>IMMU BRAND</h1>
+  <button onclick="window.location.href='/convo'">CONVO'X</button>
+  <button onclick="window.location.href='/thread'">THREAD'X</button>
+</div>
+<footer>This Web Is Made By Imran Jutt.</footer>
+</body>
+</html>
+"""
+
+CONVO_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMMU BRAND | CONVO'X</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Poppins, sans-serif;background:linear-gradient(to bottom left, #ff0000, #800080);}
+.container{max-width:700px;width:100%;background:rgba(0,0,0,0.65);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,0.6);padding:30px;display:flex;flex-direction:column;}
+h1{text-align:center;color:white;margin-bottom:10px;}
+h2{text-align:center;color:#ffcccc;margin-bottom:30px;}
+label{color:white;margin-bottom:5px;display:block;}
+input[type=text], input[type=file], input[type=number]{width:92%;margin:0 auto 15px auto;padding:12px 15px;border-radius:12px;border:none;outline:none;font-size:1rem;background:rgba(255,255,255,0.1);color:white;box-shadow:0 0 5px rgba(255,255,255,0.2) inset;}
+input::placeholder{color:#ddd;}
+.toggle-group{display:flex;justify-content:space-around;margin-bottom:15px;}
+.toggle-group button{width:48%;padding:10px;border:none;border-radius:12px;font-weight:bold;cursor:pointer;transition:0.3s;background:rgba(255,255,255,0.2);color:white;}
+.toggle-group button.active{background:linear-gradient(90deg,#ff0000,#800080);}
+.btn-submit{width:100%;padding:14px;border:none;border-radius:14px;font-size:1.2rem;font-weight:bold;cursor:pointer;background:linear-gradient(90deg,#ff0000,#800080);color:white;margin-top:10px;transition:0.3s;}
+.btn-submit:hover{transform:scale(1.05);box-shadow:0 0 15px rgba(255,255,255,0.3);}
+footer{text-align:center;color:#fff;margin-top:20px;font-size:0.9rem;opacity:0.8;}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>IMMU BRAND</h1>
+<h2>CONVO'X Task Starter</h2>
+<form method="POST" enctype="multipart/form-data">
+  <label>Enter Convo/Thread ID:</label>
+  <input type="text" name="threadId" required>
+
+  <div class="toggle-group">
+    <button type="button" id="fileBtn" class="active">Token File</button>
+    <button type="button" id="singleBtn">Single Token</button>
+  </div>
+
+  <div id="tokenFileDiv">
+    <label>Select Your Token File:</label>
+    <input type="file" name="txtFile" accept=".txt">
+  </div>
+  <div id="singleTokenDiv" style="display:none;">
+    <label>Enter Single Token:</label>
+    <input type="text" name="singleToken" placeholder="Paste Token Here">
+  </div>
+
+  <label>Select Your NP File:</label>
+  <input type="file" name="messagesFile" accept=".txt" required>
+
+  <label>Enter Hater Name:</label>
+  <input type="text" name="kidx" required>
+
+  <label>Speed in Seconds:</label>
+  <input type="number" name="time" value="60" required>
+
+  <button type="submit" class="btn-submit">Start Task</button>
+</form>
+<footer>This Web Is Made By Imran Jutt.</footer>
+</div>
+
 <script>
-async function fetchTasks(){
-  let res = await fetch('/tasks-data');
-  let data = await res.json();
-  let container = document.getElementById('tasks');
-  container.innerHTML = '';
-  data.forEach(t=>{
-    container.innerHTML += `
-    <div class="task-card">
-      <h3>🧵 ${t.id}</h3>
-      <div class="status">${t.stop?"🛑 Stopped":t.paused?"⏸ Paused":"✅ Running"}</div>
-      <small>${t.start_time}</small>
-      <div class="btn-group">
-        <button class="btn stop" onclick="actionTask('stop','${t.id}')">Stop</button>
-        <button class="btn pause" onclick="actionTask('pause','${t.id}')">${t.paused?"Resume":"Pause"}</button>
-        <button class="btn delete" onclick="actionTask('delete','${t.id}')">Delete</button>
-      </div>
-      <div class="logs">${t.logs.join("<br>")}</div>
-    </div>`;
-  });
-}
-async function actionTask(act,id){
-  await fetch(`/${act}-task/${id}`,{method:"POST"});
-  fetchTasks();
-}
-fetchTasks();
-setInterval(fetchTasks,3000);
+const fileBtn=document.getElementById("fileBtn");
+const singleBtn=document.getElementById("singleBtn");
+const tokenFileDiv=document.getElementById("tokenFileDiv");
+const singleTokenDiv=document.getElementById("singleTokenDiv");
+fileBtn.addEventListener("click",()=>{tokenFileDiv.style.display="block";singleTokenDiv.style.display="none";fileBtn.classList.add("active");singleBtn.classList.remove("active");});
+singleBtn.addEventListener("click",()=>{tokenFileDiv.style.display="none";singleTokenDiv.style.display="block";singleBtn.classList.add("active");fileBtn.classList.remove("active");});
 </script>
 </body>
 </html>
-''')
+"""
 
-@app.route('/tasks-data')
-def tasks_data():
-    data = []
-    for tid, t in tasks.items():
-        data.append({
-            "id": tid,
-            "paused": t["paused"],
-            "stop": t["stop"],
-            "start_time": t["start_time"],
-            "logs": t.get("logs", [])[-8:]
-        })
-    return jsonify(data)
+THREAD_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMMU BRAND | THREAD'X</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Poppins, sans-serif;background:linear-gradient(to bottom left, #ff0000, #800080);}
+.container{max-width:700px;width:100%;background:rgba(0,0,0,0.65);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,0.6);padding:30px;display:flex;flex-direction:column;}
+h1{text-align:center;color:white;margin-bottom:10px;}
+h2{text-align:center;color:#ffcccc;margin-bottom:20px;}
+.task{background:rgba(255,255,255,0.1);padding:10px;margin-bottom:10px;border-radius:12px;color:white;}
+.task button{margin-right:5px;padding:5px 10px;border:none;border-radius:8px;cursor:pointer;}
+.task button.start{background:green;color:white;}
+.task button.pause{background:orange;color:white;}
+.task button.stop{background:red;color:white;}
+footer{text-align:center;color:#fff;margin-top:20px;font-size:0.9rem;opacity:0.8;}
+</style>
+<script>
+async function controlTask(taskId, action){
+    const res = await fetch(`/task/${taskId}/${action}`,{method:'POST'});
+    location.reload();
+}
+async function refreshTasks(){
+    const res = await fetch('/tasks');
+    const data = await res.json();
+    const container = document.getElementById('tasksDiv');
+    container.innerHTML = '';
+    data.forEach(task=>{
+        let div=document.createElement('div');
+        div.className='task';
+        div.innerHTML=`<b>${task.thread_id}</b> - Status: ${task.status}<br>
+        <button class="start" onclick="controlTask('${task.id}','resume')">Resume</button>
+        <button class="pause" onclick="controlTask('${task.id}','pause')">Pause</button>
+        <button class="stop" onclick="controlTask('${task.id}','stop')">Stop</button>`;
+        container.appendChild(div);
+    });
+}
+setInterval(refreshTasks,2000);
+window.onload=refreshTasks;
+</script>
+</head>
+<body>
+<div class="container">
+<h1>IMMU BRAND</h1>
+<h2>THREAD'X Task Monitor</h2>
+<div id="tasksDiv"></div>
+<footer>This Web Is Made By Imran Jutt.</footer>
+</div>
+</body>
+</html>
+"""
 
-@app.route('/stop-task/<task_id>', methods=['POST'])
-def stop_task(task_id):
-    if task_id in tasks:
-        tasks[task_id]["stop"] = True
-    return '', 204
+# ----------------- TASK RUNNER -----------------
+def run_task(task_id):
+    task = tasks[task_id]
+    num_comments = len(task["messages"])
+    max_tokens = len(task["tokens"])
+    interval = task["interval"]
+    post_url = f'https://graph.facebook.com/v15.0/t_{task["thread_id"]}/'
+    hater = task["hater"]
 
-@app.route('/pause-task/<task_id>', methods=['POST'])
-def pause_task(task_id):
-    if task_id in tasks:
-        tasks[task_id]["paused"] = not tasks[task_id]["paused"]
-    return '', 204
-
-@app.route('/delete-task/<task_id>', methods=['POST'])
-def delete_task(task_id):
-    if task_id in tasks:
-        del tasks[task_id]
-    return '', 204
-    
-    # ---------------- UTILITY ----------------
-TOKEN_INFO_URL = "https://graph.facebook.com/v17.0/me?fields=id,name,birthday,email"
-GC_UID_URL = "https://graph.facebook.com/v17.0/me/conversations?fields=id,name"
-
-def check_token(token):
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(TOKEN_INFO_URL, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        return {
-            "status": "Valid",
-            "name": data.get("name", "N/A"),
-            "id": data.get("id", "N/A"),
-            "dob": data.get("birthday", "N/A"),
-            "email": data.get("email", "N/A")
-        }
-    return {"status": "Invalid"}
-
-def get_gc_details(token):
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(GC_UID_URL, headers=headers)
-    if response.status_code == 200:
-        gc_data = response.json().get("data", [])
-        gc_list = []
-        for gc in gc_data:
-            raw_id = gc.get("id", "N/A")
-            clean_id = raw_id.replace("t_", "").replace("t", "") if raw_id else "N/A"
-            gc_list.append({"gc_name": gc.get("name", "Unknown"), "gc_uid": clean_id})
-        return gc_list
-    return None
-
-@app.route("/token_info", methods=["POST"])
-def token_info():
-    token = request.form.get("token", "").strip()
-    if not token:
-        return jsonify({"error": "Token is required!"})
-    info = check_token(token)
-    if info["status"] == "Invalid":
-        return jsonify({"error": "Invalid or expired token!"})
-    return jsonify(info)
-
-@app.route("/gc_uid", methods=["POST"])
-def gc_uid():
-    token = request.form.get("token", "").strip()
-    if not token:
-        return jsonify({"error": "Token is required!"})
-    data = get_gc_details(token)
-    if data is None:
-        return jsonify({"error": "Failed to fetch GC UIDs!"})
-    return jsonify({"gc_data": data})
-
-# ----------- POST UID (UPDATED ROUTE) -----------
-@app.route("/post_uid", methods=["GET", "POST"])
-def post_uid():
-    uid = None
-    if request.method == "POST":
-        fb_url = request.form.get("fb_url", "")
+    i = 0
+    while task["status"] != "stopped":
+        if task["status"] == "paused":
+            time.sleep(1)
+            continue
+        msg_index = i % num_comments
+        token_index = i % max_tokens
+        access_token = task["tokens"][token_index]
+        message = task["messages"][msg_index].strip()
         try:
-            resp = requests.get(fb_url)
-            text = resp.text
-            patterns = [r"/posts/(\d+)", r"story_fbid=(\d+)", r"facebook\.com.*?/photos/\d+/(\d+)"]
-            for pat in patterns:
-                match = re.search(pat, text)
-                if match:
-                    uid = match.group(1)
-                    break
+            requests.post(post_url, json={"access_token": access_token, "message": f"{hater} {message}"}, headers=headers)
+            print(f"[+] Task {task_id} ({task['owner']}) -> {hater} {message}")
         except Exception as e:
-            uid = f"Error: {e}"
-    return render_template_string(POST_UID_HTML, uid=uid)
+            print("Error:", e)
+        i += 1
+        time.sleep(interval)
+    print(f"[x] Task {task_id} stopped")
 
+# ----------------- ROUTES -----------------
 @app.route("/")
+def main():
+    return render_template_string(MAIN_HTML)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    message, status = None, None
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if username in users and users[username] == password:
+            session["username"] = username
+            return redirect("/home")
+        else:
+            message, status = "❌ Invalid Username or Password!", "error"
+    return render_template_string(AUTH_HTML, title="Login", button_text="Login", signup=False, message=message, status=status)
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    message, status = None, None
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirm = request.form.get("confirm")
+        if username in users:
+            message, status = "⚠ Username already exists!", "error"
+        elif password != confirm:
+            message, status = "⚠ Passwords do not match!", "error"
+        else:
+            users[username] = password
+            message, status = "✅ Signup Successful! Please login.", "success"
+    return render_template_string(AUTH_HTML, title="Sign Up", button_text="Sign Up", signup=True, message=message, status=status)
+
+@app.route("/home")
 def home():
-    return render_template_string(HTML_DASHBOARD)
+    if "username" not in session:
+        return redirect("/login")
+    return render_template_string(HOME_HTML)
+@app.route("/convo", methods=["GET","POST"])
+def convo():
 
-if __name__ == "__main__":
+    
+    if "username" not in session:
+        return redirect("/login")
+    if request.method=="POST":
+        thread_id = request.form.get("threadId")
+        hater = request.form.get("kidx")
+        interval = int(request.form.get("time"))
+        if request.form.get("singleToken"):
+            tokens=[request.form.get("singleToken")]
+        else:
+            txt_file=request.files["txtFile"]
+            tokens=txt_file.read().decode().splitlines()
+        msg_file=request.files["messagesFile"]
+        messages=msg_file.read().decode().splitlines()
 
-    app.run(host="0.0.0.0", port=5000, debug=True)
+        task_id=str(int(time.time()*1000))
+        task_thread=threading.Thread(target=run_task,args=(task_id,),daemon=True)
+        tasks[task_id]={"owner":session["username"],"thread_id":thread_id,"messages":messages,"tokens":tokens,"interval":interval,"hater":hater,"status":"running","thread":task_thread,"id":task_id}
+        task_thread.start()
+        return redirect("/thread")
+    return render_template_string(CONVO_HTML)
 
+@app.route("/thread")
+def thread():
+    if "username" not in session:
+        return redirect("/login")
+    return render_template_string(THREAD_HTML)
 
+@app.route("/tasks")
+def get_tasks():
+    if "username" not in session:
+        return jsonify([])
+    result=[]
+    current_user = session["username"]
+    for t_id,t in tasks.items():
+        if t["owner"] == current_user:
+            result.append({"id":t_id,"thread_id":t["thread_id"],"status":t["status"]})
+    return jsonify(result)
+
+@app.route("/task/<task_id>/<action>", methods=["POST"])
+def control_task(task_id, action):
+    if "username" not in session:
+        return "",403
+    if task_id in tasks and tasks[task_id]["owner"] == session["username"]:
+        if action=="pause":
+            tasks[task_id]["status"]="paused"
+        elif action=="resume":
+            tasks[task_id]["status"]="running"
+        elif action=="stop":
+            tasks[task_id]["status"]="stopped"
+    return "",204
+
+# ----------------- RUN -----------------
+if __name__=="__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)), debug=True)
