@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string, request, redirect, url_for, jsonify, session
+import os
 import threading
 import time
 import requests
@@ -19,9 +20,117 @@ headers = {
     'referer': 'www.google.com'
 }
 
-tasks = {}  # task_id : {"owner":username, "thread_id":..., "messages":..., "tokens":..., "interval":..., "hater":..., "status":..., "thread": threading.Thread}
+tasks = {}
+users = {}
 
-users = {}  # Simple in-memory user store: {username: password}
+# ----------------- HTML: MAIN PAGE -----------------
+MAIN_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMU JUTT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css" />
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #000000, #2c2c2c);
+            margin: 0;
+            padding: 0;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+        h2 {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+            color: #ffde59;
+            text-shadow: 0 0 10px rgba(255, 222, 89, 0.8);
+        }
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 30px rgba(255, 222, 89, 0.3);
+        }
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .card h1 {
+            font-size: 16px;
+            margin: 15px;
+            color: #fff;
+        }
+        .button-34 {
+            background: #ffde59;
+            color: #000;
+            border-radius: 999px;
+            box-shadow: 0 4px 15px rgba(255, 222, 89, 0.5);
+            font-weight: bold;
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+        .button-34:hover {
+            background: #ffe98f;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            text-align: center;
+            opacity: 0.7;
+        }
+        .footer a {
+            color: #ffde59;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h2>🔥 IMMU JUTT 🔥</h2>
+    <div class="card-container">
+        <div class="card">
+            <img src="https://i.imgur.com/IctLihG.png" alt="Card Image">
+            <h1>╰┈➤ CONVO SERVER - CLICK CHECK TO USE.</h1>
+            <button class="button-34" onclick="window.location.href='/'">⊲ CHECK ⊳</button>
+        </div>
+        <div class="card">
+            <img src="https://i.imgur.com/IctLihG.png" alt="Card Image">
+            <h1>╰┈➤ POST SERVER - CLICK CHECK TO USE.</h1>
+            <button class="button-34" onclick="window.location.href='https://busy-marianna-sahilkoyeb-968101d8.koyeb.app/'">⊲ CHECK ⊳</button>
+        </div>
+    </div>
+    <div class="footer">
+        <p>© 2024 Henry Dwn. All Rights Reserved. | Made with ❤️ by <a href="#">IMMU JUTT</a></p>
+    </div>
+</body>
+</html>
+'''
 
 # ----------------- HTML TEMPLATES -----------------
 AUTH_HTML = """
@@ -343,7 +452,7 @@ window.onload=refreshTasks;
 </html>
 """
 
-# ----------------- HELPERS -----------------
+# ----------------- TASK RUNNER -----------------
 def run_task(task_id):
     task = tasks[task_id]
     num_comments = len(task["messages"])
@@ -371,6 +480,10 @@ def run_task(task_id):
     print(f"[x] Task {task_id} stopped")
 
 # ----------------- ROUTES -----------------
+@app.route("/main")
+def main_page():
+    return render_template_string(MAIN_HTML)
+
 @app.route("/", methods=["GET", "POST"])
 def login():
     message = None
@@ -379,7 +492,7 @@ def login():
         username = request.form.get("username")
         password = request.form.get("password")
         if username in users and users[username] == password:
-            session["username"] = username  # ✅ Store logged-in user
+            session["username"] = username
             return redirect("/home")
         else:
             message = "❌ Invalid Username or Password!"
@@ -450,7 +563,7 @@ def get_tasks():
     result=[]
     current_user = session["username"]
     for t_id,t in tasks.items():
-        if t["owner"] == current_user:  # ✅ Filter tasks by owner
+        if t["owner"] == current_user:
             result.append({"id":t_id,"thread_id":t["thread_id"],"status":t["status"]})
     return jsonify(result)
 
@@ -458,7 +571,7 @@ def get_tasks():
 def control_task(task_id, action):
     if "username" not in session:
         return "",403
-    if task_id in tasks and tasks[task_id]["owner"] == session["username"]:  # ✅ Allow control only if owner
+    if task_id in tasks and tasks[task_id]["owner"] == session["username"]:
         if action=="pause":
             tasks[task_id]["status"]="paused"
         elif action=="resume":
@@ -469,4 +582,5 @@ def control_task(task_id, action):
 
 # ----------------- RUN -----------------
 if __name__=="__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
