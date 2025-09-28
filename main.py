@@ -1,9 +1,5 @@
 from flask import Flask, render_template_string, request, redirect, url_for, jsonify, session
-import os
-import threading
-import time
-import requests
-import secrets
+import threading, time, requests, secrets, os
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
@@ -23,93 +19,91 @@ headers = {
 tasks = {}
 users = {}
 
-# ----------------- HTML: MAIN PAGE -----------------
+# ----------------- MAIN CARD PAGE -----------------
 MAIN_HTML = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMU JUTT</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css" />
-    <style>
-        body {
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #000000, #2c2c2c);
-            margin: 0;
-            padding: 0;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-        }
-        h2 {
-            text-align: center;
-            font-size: 24px;
-            margin: 20px 0;
-            color: #ffde59;
-            text-shadow: 0 0 10px rgba(255, 222, 89, 0.8);
-        }
-        .card-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 25px;
-            width: 90%;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 20px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            overflow: hidden;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .card:hover {
-            transform: scale(1.05);
-            box-shadow: 0 12px 30px rgba(255, 222, 89, 0.3);
-        }
-        .card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-        .card h1 {
-            font-size: 16px;
-            margin: 15px;
-            color: #fff;
-        }
-        .button-34 {
-            background: #ffde59;
-            color: #000;
-            border-radius: 999px;
-            box-shadow: 0 4px 15px rgba(255, 222, 89, 0.5);
-            font-weight: bold;
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            margin-bottom: 20px;
-            transition: background 0.3s ease;
-        }
-        .button-34:hover {
-            background: #ffe98f;
-        }
-        .footer {
-            margin-top: 30px;
-            font-size: 14px;
-            text-align: center;
-            opacity: 0.7;
-        }
-        .footer a {
-            color: #ffde59;
-            text-decoration: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMU JUTT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css" />
+<style>
+body {
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(135deg, #000000, #2c2c2c);
+    margin: 0;
+    padding: 0;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+}
+h2 {
+    text-align: center;
+    font-size: 24px;
+    margin: 20px 0;
+    color: #ffde59;
+    text-shadow: 0 0 10px rgba(255, 222, 89, 0.8);
+}
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 25px;
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 30px rgba(255, 222, 89, 0.3);
+}
+.card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+.card h1 {
+    font-size: 16px;
+    margin: 15px;
+    color: #fff;
+}
+.button-34 {
+    background: #ffde59;
+    color: #000;
+    border-radius: 999px;
+    box-shadow: 0 4px 15px rgba(255, 222, 89, 0.5);
+    font-weight: bold;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    margin-bottom: 20px;
+    transition: background 0.3s ease;
+}
+.button-34:hover { background: #ffe98f; }
+.footer {
+    margin-top: 30px;
+    font-size: 14px;
+    text-align: center;
+    opacity: 0.7;
+}
+.footer a {
+    color: #ffde59;
+    text-decoration: none;
+}
+</style>
 </head>
 <body>
     <h2>🔥 IMMU JUTT 🔥</h2>
@@ -117,7 +111,7 @@ MAIN_HTML = '''
         <div class="card">
             <img src="https://i.imgur.com/IctLihG.png" alt="Card Image">
             <h1>╰┈➤ CONVO SERVER - CLICK CHECK TO USE.</h1>
-            <button class="button-34" onclick="window.location.href='/'">⊲ CHECK ⊳</button>
+            <button class="button-34" onclick="window.location.href='/login'">⊲ CHECK ⊳</button>
         </div>
         <div class="card">
             <img src="https://i.imgur.com/IctLihG.png" alt="Card Image">
@@ -132,6 +126,7 @@ MAIN_HTML = '''
 </html>
 '''
 
+# ----------------- HTML PAGES -----------------
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -478,14 +473,13 @@ def run_task(task_id):
     print(f"[x] Task {task_id} stopped")
 
 # ----------------- ROUTES -----------------
-@app.route("/main")
-def main_page():
+@app.route("/")
+def main():
     return render_template_string(MAIN_HTML)
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    message = None
-    status = None
+    message, status = None, None
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
@@ -493,46 +487,39 @@ def login():
             session["username"] = username
             return redirect("/home")
         else:
-            message = "❌ Invalid Username or Password!"
-            status = "error"
-    return render_template_string(AUTH_HTML, title="Login", button_text="Login",
-                                  signup=False, message=message, status=status)
+            message, status = "❌ Invalid Username or Password!", "error"
+    return render_template_string(AUTH_HTML, title="Login", button_text="Login", signup=False, message=message, status=status)
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
-    message = None
-    status = None
+    message, status = None, None
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
         confirm = request.form.get("confirm")
         if username in users:
-            message = "⚠ Username already exists!"
-            status = "error"
+            message, status = "⚠ Username already exists!", "error"
         elif password != confirm:
-            message = "⚠ Passwords do not match!"
-            status = "error"
+            message, status = "⚠ Passwords do not match!", "error"
         else:
             users[username] = password
-            message = "✅ Signup Successful! Please login."
-            status = "success"
-    return render_template_string(AUTH_HTML, title="Sign Up", button_text="Sign Up",
-                                  signup=True, message=message, status=status)
+            message, status = "✅ Signup Successful! Please login.", "success"
+    return render_template_string(AUTH_HTML, title="Sign Up", button_text="Sign Up", signup=True, message=message, status=status)
 
 @app.route("/home")
 def home():
     if "username" not in session:
-        return redirect("/")
+        return redirect("/login")
     return render_template_string(HOME_HTML)
 
 @app.route("/convo", methods=["GET","POST"])
 def convo():
     if "username" not in session:
-        return redirect("/")
+        return redirect("/login")
     if request.method=="POST":
-        thread_id=request.form.get("threadId")
-        hater=request.form.get("kidx")
-        interval=int(request.form.get("time"))
+        thread_id = request.form.get("threadId")
+        hater = request.form.get("kidx")
+        interval = int(request.form.get("time"))
         if request.form.get("singleToken"):
             tokens=[request.form.get("singleToken")]
         else:
@@ -551,7 +538,7 @@ def convo():
 @app.route("/thread")
 def thread():
     if "username" not in session:
-        return redirect("/")
+        return redirect("/login")
     return render_template_string(THREAD_HTML)
 
 @app.route("/tasks")
@@ -580,5 +567,4 @@ def control_task(task_id, action):
 
 # ----------------- RUN -----------------
 if __name__=="__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)), debug=True)
