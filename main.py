@@ -511,9 +511,10 @@ def home():
     if "username" not in session:
         return redirect("/login")
     return render_template_string(HOME_HTML)
-
 @app.route("/convo", methods=["GET","POST"])
 def convo():
+
+    
     if "username" not in session:
         return redirect("/login")
     if request.method=="POST":
