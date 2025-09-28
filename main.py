@@ -127,7 +127,9 @@ h2 {
 '''
 
 # ----------------- HTML PAGES -----------------
-"""<!DOCTYPE html>
+
+AUTH_HTML = """
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
