@@ -27,16 +27,24 @@ PANEL_HTML = """
     border-radius: 25px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-    padding: 40px;
+    padding: 20px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.7);
     text-align: center;
     color: white;
+    overflow: hidden;
+  }
+  .card img {
+    width: 100%;
+    height: 650px;
+    object-fit: cover;
+    border-radius: 20px;
+    margin-bottom: 30px;
   }
   .card h1 {
     font-size: 2.5rem;
-    margin-bottom: 50px;
+    margin-bottom: 40px;
   }
   .btn {
     width: 200px;
@@ -65,6 +73,7 @@ PANEL_HTML = """
 </head>
 <body>
   <div class="card">
+    <img src="https://i.imgur.com/9IEiv1n.jpeg" alt="Panel Image">
     <h1>🔥 IMMU PANEL 🔥</h1>
     <button class="btn btn-start" onclick="window.location.href='/start'">START</button>
     <button class="btn btn-logs" onclick="window.location.href='/logs'">CHECK LOGS</button>
