@@ -342,11 +342,11 @@ PANEL_HTML = """
 
 @app.route("/")
 def home():
-    now = datetime.datetime.datetime.now()
+    now = datetime.datetime.now()
     date = now.strftime("%A, %d %B %Y")
     time = now.strftime("%I:%M:%S %p")
-    weather = "Sunny 28°C"  # keep static or integrate an API if you want live weather
+    weather = "Sunny 28°C"  # static weather
     return render_template_string(PANEL_HTML, date=date, time=time, weather=weather)
-
+  
 if __name__ == "__main__":
     app.run(debug=True)
