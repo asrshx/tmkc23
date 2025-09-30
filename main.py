@@ -47,7 +47,7 @@ PANEL_HTML = """
       background: #fff;
       border-radius: 20px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-      width: 498px;
+      width: 496px;
       padding: 20px;
       margin-bottom: 30px;
       text-align: center;
