@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string
+import datetime
 
 app = Flask(__name__)
 
@@ -20,14 +21,55 @@ PANEL_HTML = """
       align-items: center;
     }
 
-    h1 {
-      margin: 25px 0;
-      font-size: 2.2rem;
-      text-align: center;
-      color: #2c3e50;
+    /* Typing Animation */
+    .typing {
+      margin: 30px 0 10px;
+      font-size: 35px;
       font-weight: bold;
+      color: #2c3e50;
+      border-right: 3px solid #2c3e50;
+      white-space: nowrap;
+      overflow: hidden;
+      width: 0;
+      animation: typing 4s steps(20, end) forwards, blink 0.8s infinite;
     }
 
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 350px; }
+    }
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+
+    /* Time Weather Card */
+    .info-card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      width: 500px;
+      padding: 20px;
+      margin-bottom: 30px;
+      text-align: center;
+      animation: fadeIn 1.5s ease-in-out;
+    }
+
+    .info-card h2 {
+      margin: 10px 0;
+      color: #3498db;
+    }
+    .info-card p {
+      margin: 5px 0;
+      color: #555;
+      font-size: 1rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards */
     .container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -45,7 +87,7 @@ PANEL_HTML = """
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       text-align: center;
       padding-bottom: 20px;
-      height: 800
+      height: 700px;
     }
 
     .card:hover {
@@ -55,9 +97,9 @@ PANEL_HTML = """
 
     .card img {
       width: 100%;
-      height: 250px;
+      height: 600px;
       object-fit: cover;
-      border-bottom: 1px solid #eee;
+      border-radius: 20px 20px 0 0;
     }
 
     .card h2 {
@@ -89,8 +131,17 @@ PANEL_HTML = """
 </head>
 <body>
 
-  <h1>Henry-X Panel</h1>
+  <!-- Typing Text -->
+  <div class="typing">Hii I'm Henry Tools</div>
 
+  <!-- Info Card (Time/Date/Weather) -->
+  <div class="info-card">
+    <h2>📅 {{date}}</h2>
+    <p>⏰ {{time}}</p>
+    <p>☁️ Weather: {{weather}}</p>
+  </div>
+
+  <!-- Cards -->
   <div class="container">
 
     <div class="card">
@@ -124,7 +175,12 @@ PANEL_HTML = """
 
 @app.route("/")
 def home():
-    return render_template_string(PANEL_HTML)
+    now = datetime.datetime.now()
+    date = now.strftime("%A, %d %B %Y")
+    time = now.strftime("%I:%M %p")
+    # Weather yaha static rakha hai, API se bhi laa sakte ho
+    weather = "Sunny 28°C"
+    return render_template_string(PANEL_HTML, date=date, time=time, weather=weather)
 
 if __name__ == "__main__":
     app.run(debug=True)
