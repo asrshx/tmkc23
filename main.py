@@ -41,7 +41,7 @@ PANEL_HTML = """
       background: rgba(255, 255, 255, 0.08);
       padding: 20px;
       border-radius: 20px;
-      width: 700px;
+      width: 500px;
       text-align: center;
       box-shadow: 0px 0px 25px rgba(0,0,0,0.6);
       backdrop-filter: blur(10px);
@@ -49,7 +49,7 @@ PANEL_HTML = """
     }
 
     .card img {
-      width: 600px;
+      width: 400px;
       border-radius: 15px;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
