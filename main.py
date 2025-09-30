@@ -45,6 +45,7 @@ PANEL_HTML = """
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       text-align: center;
       padding-bottom: 20px;
+      height: 800
     }
 
     .card:hover {
