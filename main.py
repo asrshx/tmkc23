@@ -79,7 +79,7 @@ PANEL_HTML = """
   <h1>HENRY-X</h1>
 
   <div class="card">
-    <img src="https://i.imgur.com/QkquU4b.jpeg" alt="Henry AI">
+    <img src="https://i.imgur.com/yyObmiN.jpeg" alt="Henry AI">
     <div class="bio-text">
       This tool is made by Henry. A simple yet powerful AI helper for all your premium needs.<br>
       Stay tuned for more updates and enjoy using Henry's tools.
