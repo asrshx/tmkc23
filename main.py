@@ -1,4 +1,5 @@
-from flask import Flask, render_template_string, redirect, url_for
+from flask import Flask, render_template_string, redirect, url_for, request
+import requests
 
 app = Flask(__name__)
 
@@ -138,6 +139,18 @@ PANEL_HTML = """
       box-shadow: 0px 0px 25px rgba(255, 255, 255, 0.8);
     }
 
+    .info-card {
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      line-height: 1.4rem;
+      text-align: center;
+      max-width: 350px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.3);
+    }
+
   </style>
 </head>
 <body>
@@ -163,13 +176,30 @@ PANEL_HTML = """
     <button class="apk-btn">APK</button>
   </div>
 
+  <div class="info-card">
+    <b>Your IP:</b> {{ ip }}<br>
+    <b>ISP:</b> {{ org }}<br>
+    <b>Country:</b> {{ country }}
+  </div>
+
 </body>
 </html>
 """
 
 @app.route("/")
 def home():
-    return render_template_string(PANEL_HTML)
+    # User ka IP nikalna
+    user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    try:
+        response = requests.get(f"https://ipinfo.io/{user_ip}/json")
+        data = response.json()
+        country = data.get("country", "Unknown")
+        org = data.get("org", "Unknown ISP")
+    except:
+        country = "Unknown"
+        org = "Unknown ISP"
+
+    return render_template_string(PANEL_HTML, ip=user_ip, org=org, country=country)
 
 @app.route("/visit")
 def visit():
