@@ -91,7 +91,7 @@ PANEL_HTML = """
   <h1>HENRY-X</h1>
 
   <div class="image-container">
-    <img src="https://via.placeholder.com/300x300.png?text=Henry+AI" alt="Henry AI">
+    <img src="https://i.imgur.com/QkquU4b.jpeg" alt="Henry AI">
   </div>
 
   <div class="animated-text">Hyy Users I'm Henry AI</div>
