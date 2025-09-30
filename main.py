@@ -12,87 +12,110 @@ PANEL_HTML = """
   <style>
     body {
       margin: 0;
-      height: 100vh;
+      padding: 0;
+      background: #f5f6fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: white;
     }
 
     h1 {
-      font-size: 3.5rem;
-      margin-top: 30px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
+      margin: 25px 0;
+      font-size: 2.2rem;
       text-align: center;
-      animation: glow 2s infinite alternate;
+      color: #2c3e50;
+      font-weight: bold;
     }
 
-    @keyframes glow {
-      from { text-shadow: 0 0 15px #ff00ff, 0 0 30px #ff00ff; }
-      to   { text-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff; }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      width: 90%;
+      max-width: 1100px;
+      margin-bottom: 50px;
     }
 
     .card {
-      margin-top: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      padding: 30px;
-      border-radius: 25px;
-      width: 700px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       text-align: center;
-      box-shadow: 0px 0px 35px rgba(0,0,0,0.7);
-      backdrop-filter: blur(12px);
-      animation: fadeIn 1.5s ease-in-out;
+      padding-bottom: 20px;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.2);
     }
 
     .card img {
-      width: 600px;
-      border-radius: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 0 25px rgba(0,0,0,0.6), 0 0 40px rgba(0,255,255,0.3);
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-bottom: 1px solid #eee;
     }
 
-    .bio-text {
+    .card h2 {
+      font-size: 1.3rem;
+      margin: 15px 0 10px;
+      color: #2c3e50;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      color: #555;
+      padding: 0 15px;
+      line-height: 1.4rem;
+    }
+
+    .icon {
+      font-size: 24px;
       margin-top: 10px;
-      font-size: 1rem;
-      color: #eaeaea;
-      line-height: 1.5rem;
-      text-shadow: 0 0 5px rgba(0,0,0,0.4);
+      color: #3498db;
     }
 
     footer {
-      margin-bottom: 15px;
-      font-size: 0.8rem;
-      color: #ccc;
       text-align: center;
-      letter-spacing: 1px;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      padding: 15px;
+      font-size: 0.85rem;
+      color: #888;
     }
   </style>
 </head>
 <body>
 
-  <h1>HENRY-X</h1>
+  <h1>Henry-X Panel</h1>
 
-  <div class="card">
-    <img src="https://i.imgur.com/yyObmiN.jpeg" alt="Henry AI">
-    <div class="bio-text">
-      🚀 This tool is crafted by <b>Henry</b>. A simple yet powerful AI assistant<br>
-      built to deliver premium features with style.<br>
-      Stay tuned and enjoy the journey with Henry's tools ✨
+  <div class="container">
+
+    <div class="card">
+      <img src="https://i.imgur.com/yyObmiN.jpeg" alt="Henry AI">
+      <h2>⚡ Convox</h2>
+      <p>Just Paste Your Multiple Tokens & Start your Conversion Thread Supported Multiple Tokens & Automation.</p>
+      <div class="icon">📶</div>
     </div>
+
+    <div class="card">
+      <img src="https://i.imgur.com/XOeNq1J.jpeg" alt="Service 2">
+      <h2>🔥 Auto-X</h2>
+      <p>Automated premium tools with multi-token support for your advanced automation needs.</p>
+      <div class="icon">💻</div>
+    </div>
+
+    <div class="card">
+      <img src="https://i.imgur.com/zI2LrBi.jpeg" alt="Service 3">
+      <h2>🔮 Magic Tools</h2>
+      <p>Next-level utilities with AI-powered features. Smooth, secure & super fast.</p>
+      <div class="icon">✨</div>
+    </div>
+
   </div>
 
-  <footer>
-    © All rights reserved by Henry Don
-  </footer>
+  <footer>All rights reserved by Henry Don</footer>
 
 </body>
 </html>
