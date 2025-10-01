@@ -113,64 +113,45 @@ PANEL_HTML = """
     }
 
     /* the three boxes/cards */
-    .cards-row{
-      margin-top:20px;
-      display:flex;
-      gap:14px;
-      flex-wrap:wrap;
-      justify-content:center;
-    }
-    .action-card{
-      background: var(--glass);
-      border-radius:12px;
-      padding:14px 16px;
-      min-width:220px;
-      max-width:320px;
-      text-align:center;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
-      transition: transform .18s ease, box-shadow .18s ease;
-      cursor:pointer;
-      color: #fff;
-      text-decoration:none;
-    }
-    .action-card:hover{
-      transform: translateY(-6px);
-      box-shadow: 0 18px 40px rgba(0,0,0,0.6);
-    }
-    .action-card h3{
-      margin:0 0 8px 0;
-      font-size:16px;
-      letter-spacing:1px;
-    }
-    .action-card p{
-      margin:0;
-      color:var(--muted);
-      font-size:14px;
-    }
-
-    .small-muted{
-      margin-top:18px;
-      text-align:center;
-      font-size:12px;
-      color:var(--muted);
-      opacity:0.9;
-    }
-
-    footer{
-      margin-top:22px;
-      text-align:center;
-      font-size:12px;
-      color:var(--muted);
-    }
-
-    /* responsive */
-    @media (max-width:760px){
-      .top-row{flex-direction:column; align-items:center}
-      .image-card{width:88%}
-      .desc-card{width:88%}
-      .cards-row{flex-direction:column; align-items:center}
-    }
-  </style>
+# inside PANEL_HTML (CSS me changes)
+<style>
+  ...
+  .cards-row{
+    margin-top:30px;
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .action-card{
+    background: var(--glass);
+    border-radius:16px;
+    padding:24px 22px;
+    min-width:280px;   /* pehle 220 tha */
+    max-width:360px;   /* pehle 320 tha */
+    text-align:center;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.55);
+    transition: transform .2s ease, box-shadow .2s ease;
+    cursor:pointer;
+    color: #fff;
+    text-decoration:none;
+  }
+  .action-card:hover{
+    transform: translateY(-8px);
+    box-shadow: 0 20px 44px rgba(0,0,0,0.65);
+  }
+  .action-card h3{
+    margin:0 0 10px 0;
+    font-size:18px;   /* thoda bada */
+    letter-spacing:1px;
+  }
+  .action-card p{
+    margin:0;
+    color:var(--muted);
+    font-size:15px;   /* thoda bada */
+    line-height:1.5;
+  }
+</style>
 </head>
 <body>
   <div class="container">
@@ -256,12 +237,12 @@ def home():
                 # fallback to UTC/time returned earlier
                 pass
         else:
-            # If no zoneinfo available but ipinfo gave 'utc_offset' or timezone, try to show timezone label
-            if tz_name:
-                # show timezone name alongside UTC time as best-effort
-                local_time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S (approx, UTC)")
+            if tz_name and ZoneInfo is not None:
+    try:
+        now_local = datetime.now(ZoneInfo(tz_name))
+        local_time_str = now_local.strftime("%d-%m-%Y %I:%M %p")   # dd-mm-yyyy hour:min am/pm
+        local_day = now_local.strftime("%A")
     except Exception:
-        # any failure: keep defaults (UTC)
         pass
 
     # prepare contact links
