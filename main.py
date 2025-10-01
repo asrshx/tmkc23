@@ -229,22 +229,16 @@ def home():
             detected_location = ", ".join(part for part in [city, region, country] if part)
         # compute local time using tz_name if available
         if tz_name and ZoneInfo is not None:
-            try:
-                now_local = datetime.now(ZoneInfo(tz_name))
-                local_time_str = now_local.strftime("%Y-%m-%d %H:%M:%S")
-                local_day = now_local.strftime("%A")
-            except Exception:
-                # fallback to UTC/time returned earlier
-                pass
-        else:
-            # if tz_name and ZoneInfo is not None:
     try:
         now_local = datetime.now(ZoneInfo(tz_name))
         local_time_str = now_local.strftime("%d-%m-%Y %I:%M %p")   # dd-mm-yyyy hour:min am/pm
         local_day = now_local.strftime("%A")
     except Exception:
         pass
-
+else:
+    # fallback: show UTC
+    local_time_str = datetime.utcnow().strftime("%d-%m-%Y %I:%M %p (UTC)")
+    local_day = datetime.utcnow().strftime("%A")
     # prepare contact links
     # WhatsApp prefilled message
     message = "hello henry sir please help me"
