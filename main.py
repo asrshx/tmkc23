@@ -237,7 +237,7 @@ def home():
                 # fallback to UTC/time returned earlier
                 pass
         else:
-            if tz_name and ZoneInfo is not None:
+            # if tz_name and ZoneInfo is not None:
     try:
         now_local = datetime.now(ZoneInfo(tz_name))
         local_time_str = now_local.strftime("%d-%m-%Y %I:%M %p")   # dd-mm-yyyy hour:min am/pm
