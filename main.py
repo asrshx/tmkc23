@@ -1,218 +1,295 @@
 from flask import Flask, render_template_string, redirect, url_for, request
 import requests
+from datetime import datetime
+try:
+    # zoneinfo is available in Python 3.9+
+    from zoneinfo import ZoneInfo
+except:
+    ZoneInfo = None
+import urllib.parse
 
 app = Flask(__name__)
+
+# ------------ CONFIGURE THESE ------------
+# WhatsApp number must be in international format WITHOUT plus sign or spaces.
+# Example: India +91 98765 43210 -> "919876543210"
+WHATSAPP_NUMBER = "919999999999"   # <-- change to your number
+
+# Facebook link - full URL to your profile or page
+FACEBOOK_LINK = "https://www.facebook.com/yourprofile"  # <-- change to your FB link
+# ----------------------------------------
 
 PANEL_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Henry-X Panel</title>
   <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      background: linear-gradient(135deg, #1f1f1f, #2c2c54);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: white;
-      overflow-x: hidden;
+    :root{
+      --bg1: #0e0f14;
+      --bg2: #121224;
+      --card: rgba(255,255,255,0.04);
+      --accent-start: #ff00ff;
+      --accent-end: #00ffff;
+      --glass: rgba(255,255,255,0.03);
+      --muted: rgba(255,255,255,0.6);
+    }
+    *{box-sizing: border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background: linear-gradient(135deg,var(--bg1), #1b1b2f 60%);
+      font-family: Inter, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:36px 16px;
+    }
+    .container{
+      width:100%;
+      max-width:980px;
     }
 
-    h1 {
-      font-size: 3rem;
-      margin-top: 30px;
-      text-transform: uppercase;
-      letter-spacing: 4px;
-      text-align: center;
+    header h1{
+      margin:0 0 14px 0;
+      font-size:34px;
+      letter-spacing:4px;
+      text-transform:uppercase;
+      text-align:center;
+      color: white;
       animation: glow 2s infinite alternate;
     }
-
-    @keyframes glow {
-      from { text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; }
-      to   { text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff; }
+    @keyframes glow{
+      from { text-shadow: 0 0 8px var(--accent-start); }
+      to   { text-shadow: 0 0 16px var(--accent-end); }
     }
 
-    .image-container {
-      margin-top: 20px;
-      display: flex;
-      justify-content: center;
+    /* layout */
+    .top-row{
+      display:flex;
+      gap:20px;
+      align-items:flex-start;
+      justify-content:center;
+      flex-wrap:wrap;
     }
 
-    .image-container img {
-      width: 300px;
-      height: auto;
-      border-radius: 20px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+    .image-card, .desc-card{
+      background: var(--card);
+      border-radius:14px;
+      padding:18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
     }
 
-    .card {
-      margin-top: 20px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 15px 20px;
-      border-radius: 15px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.4);
-      backdrop-filter: blur(10px);
-      max-width: 350px;
-      text-align: center;
-      font-size: 0.9rem;
-      line-height: 1.4rem;
-      animation: fadeIn 2s ease-in-out;
+    .image-card{
+      width:320px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .image-card img{
+      width:100%;
+      height:auto;
+      border-radius:10px;
+      display:block;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .desc-card{
+      max-width:560px;
+      flex:1;
+    }
+    .desc-card h2{
+      margin:0 0 8px 0;
+      font-size:20px;
+    }
+    .desc-card p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.5;
     }
 
-    .animated-text {
-      font-size: 35px;
-      font-weight: bold;
-      margin-top: 20px;
-      text-align: center;
-      animation: typing 3s steps(30, end) infinite alternate;
-      white-space: nowrap;
-      overflow: hidden;
-      border-right: 3px solid #fff;
+    /* the three boxes/cards */
+    .cards-row{
+      margin-top:20px;
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      justify-content:center;
     }
-
-    @keyframes typing {
-      from { width: 0; }
-      to { width: 100%; }
-    }
-
-    .visit-btn {
-      margin-top: 30px;
-      padding: 15px 40px;
-      font-size: 1.2rem;
-      font-weight: bold;
+    .action-card{
+      background: var(--glass);
+      border-radius:12px;
+      padding:14px 16px;
+      min-width:220px;
+      max-width:320px;
+      text-align:center;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      transition: transform .18s ease, box-shadow .18s ease;
+      cursor:pointer;
       color: #fff;
-      background: linear-gradient(45deg, #ff00ff, #00ffff);
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0px 0px 20px rgba(0, 255, 255, 0.6);
-      transition: 0.3s ease-in-out;
+      text-decoration:none;
+    }
+    .action-card:hover{
+      transform: translateY(-6px);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+    }
+    .action-card h3{
+      margin:0 0 8px 0;
+      font-size:16px;
+      letter-spacing:1px;
+    }
+    .action-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
     }
 
-    .visit-btn:hover {
-      transform: scale(1.1);
-      box-shadow: 0px 0px 30px rgba(255, 0, 255, 0.8);
+    .small-muted{
+      margin-top:18px;
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+      opacity:0.9;
     }
 
-    /* New Buttons Row */
-    .button-row {
-      display: flex;
-      justify-content: space-between;
-      width: 320px;
-      margin-top: 20px;
+    footer{
+      margin-top:22px;
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
     }
 
-    .about-btn, .apk-btn {
-      padding: 12px 30px;
-      font-size: 1rem;
-      font-weight: bold;
-      color: #fff;
-      border: none;
-      border-radius: 40px;
-      cursor: pointer;
-      transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    /* responsive */
+    @media (max-width:760px){
+      .top-row{flex-direction:column; align-items:center}
+      .image-card{width:88%}
+      .desc-card{width:88%}
+      .cards-row{flex-direction:column; align-items:center}
     }
-
-    .about-btn {
-      background: linear-gradient(45deg, #ff7b00, #ff00aa);
-      box-shadow: 0px 0px 15px rgba(255, 123, 0, 0.6);
-    }
-
-    .apk-btn {
-      background: linear-gradient(45deg, #00ff7f, #00bfff);
-      box-shadow: 0px 0px 15px rgba(0, 255, 127, 0.6);
-    }
-
-    .about-btn:hover, .apk-btn:hover {
-      transform: scale(1.08);
-      box-shadow: 0px 0px 25px rgba(255, 255, 255, 0.8);
-    }
-
-    .info-card {
-      margin-top: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      padding: 12px;
-      border-radius: 12px;
-      font-size: 0.85rem;
-      line-height: 1.4rem;
-      text-align: center;
-      max-width: 350px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.3);
-    }
-
   </style>
 </head>
 <body>
+  <div class="container">
+    <header>
+      <h1>HENRY-X</h1>
+    </header>
 
-  <h1>HENRY-X</h1>
+    <section class="top-row">
+      <div class="image-card">
+        <img src="https://i.imgur.com/QkquU4b.jpeg" alt="Henry AI">
+      </div>
 
-  <div class="image-container">
-    <img src="https://i.imgur.com/QkquU4b.jpeg" alt="Henry AI">
+      <div class="desc-card">
+        <h2>About HENRY-X</h2>
+        <p>
+          Hyy Users — I'm a helping tool made by Darkstar Rulex (Henry).
+          Use the cards below to contact me or view profile links. This panel is lightweight and focused on direct contact.
+        </p>
+      </div>
+    </section>
+
+    <section class="cards-row">
+      <!-- WhatsApp card (opens wa link with prefilled message) -->
+      <a class="action-card" href="{{ wa_link }}" target="_blank" rel="noopener noreferrer">
+        <h3>WhatsApp</h3>
+        <p>Click to open WhatsApp chat with the owner. Pre-filled message will be inserted.</p>
+      </a>
+
+      <!-- Facebook card -->
+      <a class="action-card" href="{{ fb_link }}" target="_blank" rel="noopener noreferrer">
+        <h3>Facebook</h3>
+        <p>Open the owner's Facebook profile / page.</p>
+      </a>
+
+      <!-- Real-time card -->
+      <div class="action-card" title="Local time based on your IP">
+        <h3>Local Time & Day</h3>
+        <p style="font-weight:600; margin-top:6px; margin-bottom:2px;">{{ local_time }}</p>
+        <p style="margin-top:6px; color: var(--muted);">{{ local_day }} — {{ detected_location }}</p>
+      </div>
+    </section>
+
+    <div class="small-muted">
+      Note: Local time is detected using your public IP address via ipinfo.io. If detection fails, server time is shown.
+    </div>
+
+    <footer>
+      this web is made by HENRY...
+    </footer>
   </div>
-
-  <div class="card">
-    Hyy Users I'm A Helping Tool Made By Darkstar Rulex Boy Henry I Hope You Are Enjoying With My Tools And All Premiums Tools Made By HENRY..
-  </div>
-
-  <div class="animated-text">Hii Users I'm HENRY-X AI</div>
-
-  <form action="{{ url_for('visit') }}">
-    <button class="visit-btn">VISIT</button>
-  </form>
-
-<div class="button-row">
-  <button class="about-btn">ABOUT</button>
-
-  <!-- APK Button ko anchor banaya -->
-  <a href="https://raw.githubusercontent.com/henry-inxide/-HENRY-X-3.0/main/HENRY-X.apk" 
-     class="apk-btn" target="_blank">
-     APK
-  </a>
-</div>
-
-  <div class="info-card">
-    <b>Your IP:</b> {{ ip }}<br>
-    <b>ISP:</b> {{ org }}<br>
-    <b>Country:</b> {{ country }}
-  </div>
-
 </body>
 </html>
 """
 
 @app.route("/")
 def home():
-    # User ka IP nikalna
+    # visitor IP
     user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    try:
-        response = requests.get(f"https://ipinfo.io/{user_ip}/json")
-        data = response.json()
-        country = data.get("country", "Unknown")
-        org = data.get("org", "Unknown ISP")
-    except:
-        country = "Unknown"
-        org = "Unknown ISP"
 
-    return render_template_string(PANEL_HTML, ip=user_ip, org=org, country=country)
+    # default values
+    tz_name = None
+    detected_location = "Unknown location"
+    local_time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S (UTC)")
+    local_day = datetime.utcnow().strftime("%A")
+
+    try:
+        # Query ipinfo
+        response = requests.get(f"https://ipinfo.io/{user_ip}/json", timeout=4)
+        data = response.json()
+        tz_name = data.get("timezone")
+        city = data.get("city")
+        region = data.get("region")
+        country = data.get("country")
+        if city or region or country:
+            detected_location = ", ".join(part for part in [city, region, country] if part)
+        # compute local time using tz_name if available
+        if tz_name and ZoneInfo is not None:
+            try:
+                now_local = datetime.now(ZoneInfo(tz_name))
+                local_time_str = now_local.strftime("%Y-%m-%d %H:%M:%S")
+                local_day = now_local.strftime("%A")
+            except Exception:
+                # fallback to UTC/time returned earlier
+                pass
+        else:
+            # If no zoneinfo available but ipinfo gave 'utc_offset' or timezone, try to show timezone label
+            if tz_name:
+                # show timezone name alongside UTC time as best-effort
+                local_time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S (approx, UTC)")
+    except Exception:
+        # any failure: keep defaults (UTC)
+        pass
+
+    # prepare contact links
+    # WhatsApp prefilled message
+    message = "hello henry sir please help me"
+    wa_number = WHATSAPP_NUMBER.strip()
+    # ensure number contains only digits (and leading + removed)
+    wa_number = "".join(ch for ch in wa_number if ch.isdigit())
+    if wa_number:
+        wa_link = f"https://wa.me/{wa_number}?text=" + urllib.parse.quote_plus(message)
+    else:
+        # if number not set, point to WhatsApp homepage
+        wa_link = "https://www.whatsapp.com/"
+
+    fb_link = FACEBOOK_LINK
+
+    return render_template_string(
+        PANEL_HTML,
+        wa_link=wa_link,
+        fb_link=fb_link,
+        local_time=local_time_str,
+        local_day=local_day,
+        detected_location=detected_location,
+    )
 
 @app.route("/visit")
 def visit():
-    return redirect("https://www.google.com")  # Example redirect
+    return redirect("https://www.google.com")  # kept for compatibility if used elsewhere
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
-
