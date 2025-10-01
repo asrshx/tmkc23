@@ -10,8 +10,8 @@ import urllib.parse
 app = Flask(__name__)
 
 # ------------ CONFIGURE THESE ------------
-WHATSAPP_NUMBER = "919999999999"   # <-- change to your number
-FACEBOOK_LINK = "https://www.facebook.com/yourprofile"  # <-- change to your FB link
+WHATSAPP_NUMBER = "919235741670"   # <-- change to your number
+FACEBOOK_LINK = "https://www.facebook.com/Henry.inxide"  # <-- change to your FB link
 # ----------------------------------------
 
 PANEL_HTML = """
