@@ -4,10 +4,9 @@ import os, threading, time, requests, secrets
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
-# Data structure for tasks
 tasks = {}   # {task_id: {"thread":..., "logs":[...], "running":True}}
 
-# -------------- HTML Templates --------------
+# ---------------- HTML Templates ----------------
 BASE_STYLE = """
 <style>
   body {
@@ -27,7 +26,7 @@ BASE_STYLE = """
     background: rgba(255,255,255,0.05);
     backdrop-filter: blur(10px);
     border-radius:20px;
-    padding:30px;
+    padding:40px;
     box-shadow: 0 0 25px rgba(0,0,0,0.6);
     text-align:center;
     overflow:auto; /* Scroll if content overflows */
@@ -37,23 +36,41 @@ BASE_STYLE = """
     height:400px;
     object-fit:cover;
     border-radius:15px;
-    margin-bottom:20px;
+    margin-bottom:30px;
   }
   input, textarea {
-    width:100%; padding:12px; border-radius:10px; border:none; outline:none;
-    margin-bottom:15px; background:rgba(0,0,0,0.4); color:white;
+    width:100%; 
+    padding:20px; 
+    border-radius:15px; 
+    border:none; 
+    outline:none;
+    margin-bottom:25px; 
+    background:rgba(0,0,0,0.4); 
+    color:white;
+    font-size:20px;
   }
-  input:focus, textarea:focus { box-shadow:0 0 10px #ff00ff; }
+  input:focus, textarea:focus { box-shadow:0 0 15px #ff00ff; }
   button {
-    padding:20px 20px; border:none; border-radius:12px;
+    padding:25px 25px; 
+    border:none; 
+    border-radius:15px;
     background:linear-gradient(90deg,#ff0000,#800080);
-    color:white; font-weight:bold; cursor:pointer;
+    color:white; 
+    font-weight:bold; 
+    font-size:22px;
+    cursor:pointer;
     transition:0.3s;
   }
-  button:hover { transform:scale(1.05); box-shadow:0 0 15px #ff00ff; }
+  button:hover { transform:scale(1.05); box-shadow:0 0 20px #ff00ff; }
   .logs {
-    text-align:left; max-height:300px; overflow:auto; background:rgba(0,0,0,0.5);
-    padding:10px; border-radius:10px; font-size:20px; margin-top:30px;
+    text-align:left; 
+    max-height:500px; 
+    overflow:auto; 
+    background:rgba(0,0,0,0.5);
+    padding:15px; 
+    border-radius:15px; 
+    font-size:18px; 
+    margin-top:40px;
   }
 </style>
 """
@@ -63,16 +80,16 @@ FORM_HTML = """
 """ + BASE_STYLE + """
 </head><body>
   <div class="card">
-    <h2>🚀 Multi Task Auto Comment Tool</h2>
+    <h1 style="margin-bottom:20px;">🚀 Multi Task Auto Comment Tool</h1>
     <img src="https://via.placeholder.com/400x200.png?text=Future+Tech" alt="Banner">
     <form method="post">
-      <label>Comment Text</label>
-      <textarea name="comment" required></textarea>
-      <label>Post ID</label>
+      <label style="font-size:22px;">Comment Text</label>
+      <textarea name="comment" required rows="5"></textarea>
+      <label style="font-size:22px;">Post ID</label>
       <input type="text" name="postid" required>
-      <label>Access Token</label>
+      <label style="font-size:22px;">Access Token</label>
       <input type="text" name="token" required>
-      <label>Delay (seconds)</label>
+      <label style="font-size:22px;">Delay (seconds)</label>
       <input type="number" name="delay" value="30" required>
       <button type="submit">Start Task</button>
     </form>
@@ -93,14 +110,14 @@ setInterval(refreshLogs, 2000);
 </script>
 </head><body>
   <div class="card">
-    <h2>📡 Live Logs (Task {{tid}})</h2>
+    <h1 style="margin-bottom:20px;">📡 Live Logs (Task {{tid}})</h1>
     <img src="https://via.placeholder.com/400x200.png?text=Logs+View" alt="Logs Banner">
     <div id="logbox" class="logs">Loading logs...</div>
   </div>
 </body></html>
 """
 
-# -------------- Functions ----------------
+# ---------------- Functions ----------------
 def run_task(tid, comment, postid, token, delay):
     url = f"https://graph.facebook.com/v15.0/{postid}/comments"
     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
@@ -120,7 +137,7 @@ def run_task(tid, comment, postid, token, delay):
         tasks[tid]["logs"].append(msg)
         time.sleep(delay)
 
-# -------------- Routes ----------------
+# ---------------- Routes ----------------
 @app.route("/", methods=["GET","POST"])
 def index():
     if request.method == "POST":
@@ -155,6 +172,6 @@ def stop(tid):
         return f"Task {tid} stopped."
     return "Task not found."
 
-# -------------- Run ----------------
+# ---------------- Run ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000, debug=True)
