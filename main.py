@@ -23,12 +23,21 @@ BASE_STYLE = """
   .card {
     width:95%;
     max-width:700px;
+    height:800px; /* Fixed height */
     background: rgba(255,255,255,0.05);
     backdrop-filter: blur(10px);
     border-radius:20px;
     padding:30px;
     box-shadow: 0 0 25px rgba(0,0,0,0.6);
     text-align:center;
+    overflow:auto; /* Scroll if content overflows */
+  }
+  .card img {
+    width:400px;
+    height:200px;
+    object-fit:cover;
+    border-radius:15px;
+    margin-bottom:20px;
   }
   input, textarea {
     width:100%; padding:12px; border-radius:10px; border:none; outline:none;
@@ -55,6 +64,7 @@ FORM_HTML = """
 </head><body>
   <div class="card">
     <h2>🚀 Multi Task Auto Comment Tool</h2>
+    <img src="https://via.placeholder.com/400x200.png?text=Future+Tech" alt="Banner">
     <form method="post">
       <label>Comment Text</label>
       <textarea name="comment" required></textarea>
@@ -84,6 +94,7 @@ setInterval(refreshLogs, 2000);
 </head><body>
   <div class="card">
     <h2>📡 Live Logs (Task {{tid}})</h2>
+    <img src="https://via.placeholder.com/400x200.png?text=Logs+View" alt="Logs Banner">
     <div id="logbox" class="logs">Loading logs...</div>
   </div>
 </body></html>
