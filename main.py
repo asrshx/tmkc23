@@ -22,8 +22,8 @@ BASE_STYLE = """
   }
   .card {
     width:95%;
-    max-width:900px;
-    height:1000px; /* Fixed height */
+    max-width:800px;
+    height:1500px; /* Fixed height */
     background: rgba(255,255,255,0.05);
     backdrop-filter: blur(10px);
     border-radius:20px;
