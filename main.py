@@ -34,7 +34,7 @@ BASE_STYLE = """
   }
   .card img {
     width:400px;
-    height:200px;
+    height:400px;
     object-fit:cover;
     border-radius:15px;
     margin-bottom:20px;
@@ -45,7 +45,7 @@ BASE_STYLE = """
   }
   input:focus, textarea:focus { box-shadow:0 0 10px #ff00ff; }
   button {
-    padding:12px 20px; border:none; border-radius:12px;
+    padding:20px 20px; border:none; border-radius:12px;
     background:linear-gradient(90deg,#ff0000,#800080);
     color:white; font-weight:bold; cursor:pointer;
     transition:0.3s;
@@ -53,7 +53,7 @@ BASE_STYLE = """
   button:hover { transform:scale(1.05); box-shadow:0 0 15px #ff00ff; }
   .logs {
     text-align:left; max-height:300px; overflow:auto; background:rgba(0,0,0,0.5);
-    padding:10px; border-radius:10px; font-size:14px; margin-top:20px;
+    padding:10px; border-radius:10px; font-size:20px; margin-top:30px;
   }
 </style>
 """
