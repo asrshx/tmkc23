@@ -32,7 +32,7 @@ BASE_STYLE = """
     overflow:auto; /* Scroll if content overflows */
   }
   .card img {
-    width:400px;
+    width:600px;
     height:400px;
     object-fit:cover;
     border-radius:15px;
@@ -57,7 +57,7 @@ BASE_STYLE = """
     background:linear-gradient(90deg,#ff0000,#800080);
     color:white; 
     font-weight:bold; 
-    font-size:22px;
+    font-size:25px;
     cursor:pointer;
     transition:0.3s;
   }
@@ -80,7 +80,7 @@ FORM_HTML = """
 """ + BASE_STYLE + """
 </head><body>
   <div class="card">
-    <h1 style="margin-bottom:20px;">🚀 Multi Task Auto Comment Tool</h1>
+    <h1 style="margin-bottom:20px;">IMMU JUTT</h1>
     <img src="https://i.imgur.com/IctLihG.png" alt="Banner">
     <form method="post">
       <label style="font-size:22px;">Comment Text</label>
