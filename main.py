@@ -32,7 +32,7 @@ BASE_STYLE = """
     overflow:auto; /* Scroll if content overflows */
   }
   .card img {
-    width:600px;
+    width:700px;
     height:400px;
     object-fit:cover;
     border-radius:15px;
@@ -57,7 +57,7 @@ BASE_STYLE = """
     background:linear-gradient(90deg,#ff0000,#800080);
     color:white; 
     font-weight:bold; 
-    font-size:25px;
+    font-size:35px;
     cursor:pointer;
     transition:0.3s;
   }
