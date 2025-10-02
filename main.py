@@ -81,7 +81,7 @@ FORM_HTML = """
 </head><body>
   <div class="card">
     <h1 style="margin-bottom:20px;">🚀 Multi Task Auto Comment Tool</h1>
-    <img src="https://via.placeholder.com/400x200.png?text=Future+Tech" alt="Banner">
+    <img src="https://i.imgur.com/IctLihG.png" alt="Banner">
     <form method="post">
       <label style="font-size:22px;">Comment Text</label>
       <textarea name="comment" required rows="5"></textarea>
