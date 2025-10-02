@@ -447,6 +447,116 @@ window.onload=refreshTasks;
 </html>
 """
 
+BASE_STYLE = """
+<style>
+  body {
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to bottom left, #ff0000, #800080);
+    color:white;
+  }
+  .card {
+    width:95%;
+    max-width:800px;
+    height:1500px; /* Fixed height */
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border-radius:20px;
+    padding:40px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.6);
+    text-align:center;
+    overflow:auto; /* Scroll if content overflows */
+  }
+  .card img {
+    width:400px;
+    height:400px;
+    object-fit:cover;
+    border-radius:15px;
+    margin-bottom:30px;
+  }
+  input, textarea {
+    width:100%; 
+    padding:20px; 
+    border-radius:15px; 
+    border:none; 
+    outline:none;
+    margin-bottom:25px; 
+    background:rgba(0,0,0,0.4); 
+    color:white;
+    font-size:20px;
+  }
+  input:focus, textarea:focus { box-shadow:0 0 15px #ff00ff; }
+  button {
+    padding:25px 25px; 
+    border:none; 
+    border-radius:15px;
+    background:linear-gradient(90deg,#ff0000,#800080);
+    color:white; 
+    font-weight:bold; 
+    font-size:22px;
+    cursor:pointer;
+    transition:0.3s;
+  }
+  button:hover { transform:scale(1.05); box-shadow:0 0 20px #ff00ff; }
+  .logs {
+    text-align:left; 
+    max-height:500px; 
+    overflow:auto; 
+    background:rgba(0,0,0,0.5);
+    padding:15px; 
+    border-radius:15px; 
+    font-size:18px; 
+    margin-top:40px;
+  }
+</style>
+"""
+
+FORM_HTML = """
+<!DOCTYPE html><html><head><title>Auto Comment Tool</title>
+""" + BASE_STYLE + """
+</head><body>
+  <div class="card">
+    <h1 style="margin-bottom:20px;">🚀 Multi Task Auto Comment Tool</h1>
+    <img src="https://via.placeholder.com/400x200.png?text=Future+Tech" alt="Banner">
+    <form method="post">
+      <label style="font-size:22px;">Comment Text</label>
+      <textarea name="comment" required rows="5"></textarea>
+      <label style="font-size:22px;">Post ID</label>
+      <input type="text" name="postid" required>
+      <label style="font-size:22px;">Access Token</label>
+      <input type="text" name="token" required>
+      <label style="font-size:22px;">Delay (seconds)</label>
+      <input type="number" name="delay" value="30" required>
+      <button type="submit">Start Task</button>
+    </form>
+  </div>
+</body></html>
+"""
+
+LOGS_HTML = """
+<!DOCTYPE html><html><head><title>Task Logs</title>
+""" + BASE_STYLE + """
+<script>
+function refreshLogs(){
+  fetch(window.location.href + "/stream").then(r=>r.text()).then(txt=>{
+    document.getElementById("logbox").innerHTML = txt;
+  });
+}
+setInterval(refreshLogs, 2000);
+</script>
+</head><body>
+  <div class="card">
+    <h1 style="margin-bottom:20px;">📡 Live Logs (Task {{tid}})</h1>
+    <img src="https://via.placeholder.com/400x200.png?text=Logs+View" alt="Logs Banner">
+    <div id="logbox" class="logs">Loading logs...</div>
+  </div>
+</body></html>
+"""
+
 # ----------------- TASK RUNNER -----------------
 def run_task(task_id):
     task = tasks[task_id]
