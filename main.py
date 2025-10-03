@@ -4,7 +4,7 @@ import sqlite3, secrets, random, os
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
-APP_SECRET = secrets.token_hex(16)
+APP_SECRET = "IMMU-JUTT-DEV-SECRET"  # fixed for stable session during dev
 DB_PATH = "approval.db"
 
 app = Flask(__name__)
@@ -14,13 +14,12 @@ app.secret_key = APP_SECRET
 def get_db():
     db = getattr(g, "_db", None)
     if db is None:
-        db = g._db = sqlite3.connect(DB_PATH, check_same_thread=False)
+        db = g._db = sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
         db.row_factory = sqlite3.Row
     return db
 
 def init_db():
     db = get_db()
-    # users table: normal users who request keys
     db.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,7 +28,6 @@ def init_db():
         status TEXT DEFAULT 'pending',
         created_at TEXT
     )""")
-    # admins table: admin accounts
     db.execute("""
     CREATE TABLE IF NOT EXISTS admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,6 +75,7 @@ BASE_HTML = """
   p.lead{opacity:0.9;font-size:18px}
   form { margin-top:24px; display:flex; flex-direction:column; gap:18px; align-items:center }
   input[type="text"]{ width:80%; max-width:600px; padding:18px; border-radius:12px; border:none; outline:none; font-size:18px; background:rgba(0,0,0,0.3); color:#fff }
+  input[type="password"]{ width:80%; max-width:600px; padding:18px; border-radius:12px; border:none; outline:none; font-size:18px; background:rgba(0,0,0,0.3); color:#fff }
   .bigbtn { padding:16px 26px; font-weight:700; font-size:18px; border-radius:999px; border:none; cursor:pointer; background:linear-gradient(90deg,#ffd54d,#ffde59); color:#000; box-shadow: 0 8px 30px rgba(255,222,89,0.12) }
   .ghost { background:transparent; border:1px solid rgba(255,255,255,0.12); color:#fff; }
   .key-box { margin-top:20px; display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap }
@@ -93,7 +92,7 @@ BASE_HTML = """
 <body>
 <div class="wrap">
   <div class="card">
-    {% block body %}{% endblock %}
+    {{ body|safe }}
   </div>
 </div>
 </body>
@@ -107,7 +106,6 @@ def setup():
 
 @app.route("/", methods=["GET","POST"])
 def home():
-    # simple username entry / create
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         if not username:
@@ -116,7 +114,6 @@ def home():
         cur = db.execute("SELECT * FROM users WHERE username=?", (username,))
         row = cur.fetchone()
         if row is None:
-            # create user with new key and pending status
             key = gen_key()
             db.execute("INSERT INTO users (username, approval_key, status, created_at) VALUES (?,?,?,?)",
                        (username, key, "pending", current_time()))
@@ -124,10 +121,8 @@ def home():
             session['username'] = username
             return redirect(url_for("user_panel"))
         else:
-            # user exists: just login
             session['username'] = username
             return redirect(url_for("user_panel"))
-    # GET: show entry form
     content = """
     <h1>IMMU JUTT</h1>
     <p class="lead">Enter your username to generate (or view) your approval key.</p>
@@ -158,9 +153,9 @@ def user_panel():
     key = row["approval_key"]
     created = row["created_at"]
 
+    content = f'<a class="logout" href="/logout">Logout</a>'
     if status == "approved":
-        content = f"""
-        <a class="logout" href="/logout">Logout</a>
+        content += f"""
         <h1>Welcome, {username}</h1>
         <p class="lead">Your account is <strong style='color:var(--accent)'>APPROVED</strong>. Use the key below to access systems.</p>
         <div class="key-box"><div><div class="small">Approval Key</div><div class="key" id="keyText">{key}</div></div>
@@ -168,21 +163,20 @@ def user_panel():
         <p class="notice">Generated at: {created}</p>
         """
     elif status == "pending":
-        content = f"""
-        <a class="logout" href="/logout">Logout</a>
+        content += f"""
         <h1>Hello, {username}</h1>
         <p class="lead">Your approval key has been generated and is <strong style='color:#ffd54d'>PENDING</strong>. Please wait for admin approval.</p>
-        <div class="key-box"><div><div class="small">Approval Key</div><div class="key">{key}</div></div></div>
+        <div class="key-box"><div><div class="small">Approval Key</div><div class="key" id="keyText">{key}</div></div></div>
         <p class="notice">Generated at: {created}</p>
         """
-    else:  # rejected
-        content = f"""
-        <a class="logout" href="/logout">Logout</a>
+    else:
+        content += f"""
         <h1>Access Denied, {username}</h1>
         <p class="lead">Your approval request was <strong style='color:#ff6b6b'>REJECTED</strong>. Contact admin for more details.</p>
-        <div class="key-box"><div><div class="small">Approval Key</div><div class="key">{key}</div></div></div>
+        <div class="key-box"><div><div class="small">Approval Key</div><div class="key" id="keyText">{key}</div></div></div>
         <p class="notice">Generated at: {created}</p>
         """
+
     content += """
     <script>
     function copyKey(){
@@ -286,9 +280,7 @@ def admin_reject(uid):
 
 # ----------------- Run -----------------
 if __name__ == "__main__":
-    # ensure DB initialized before first request
     if not os.path.exists(DB_PATH):
-        # will be initialized in before_first_request, but do it now to ensure admin exists
         with app.app_context():
             init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
