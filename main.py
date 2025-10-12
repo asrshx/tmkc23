@@ -1,220 +1,304 @@
-# stable_immu_panel.py
-from flask import Flask, request, render_template_string, redirect, url_for, session, g
-import sqlite3, secrets, random, os
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-
-APP_SECRET = secrets.token_hex(16)
-DB_PATH = "approval.db"
+from flask import Flask, render_template_string, request, jsonify, redirect, url_for
+import requests
+import re
+import threading
+import time
+import uuid
 
 app = Flask(__name__)
-app.secret_key = APP_SECRET
 
-# ----------------- Database helpers -----------------
-def get_db():
-    if 'db' not in g:
-        g.db = sqlite3.connect(DB_PATH, check_same_thread=False)
-        g.db.row_factory = sqlite3.Row
-    return g.db
-
-@app.teardown_appcontext
-def close_db(exception):
-    db = g.pop('db', None)
-    if db:
-        db.close()
-
-def init_db():
-    db = get_db()
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        approval_key TEXT,
-        status TEXT DEFAULT 'pending',
-        created_at TEXT
-    )
-    """)
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS admins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL
-    )
-    """)
-    db.commit()
-    # default admin
-    cur = db.execute("SELECT id FROM admins WHERE username=?", ("admin",))
-    if cur.fetchone() is None:
-        pw_hash = generate_password_hash("admin123")
-        db.execute("INSERT INTO admins (username,password_hash) VALUES (?,?)", ("admin", pw_hash))
-        db.commit()
-
-# ----------------- Utilities -----------------
-def gen_key():
-    return f"IMMU-JUTT-{random.randint(100000,999999)}"
-
-def current_time():
-    return datetime.utcnow().isoformat()
-
-# ----------------- Base HTML -----------------
-BASE_HTML = """
-<!doctype html>
+# ---------------- DASHBOARD ----------------
+HTML_DASHBOARD = """
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>IMMU JUTT Panel</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HENRY-X Panel</title>
 <style>
-body{margin:0;font-family:sans-serif;background:linear-gradient(135deg,#ff2d55,#7b2ff7);color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh}
-.card{background:rgba(0,0,0,0.2);padding:30px;border-radius:20px;width:90%;max-width:700px;text-align:center;backdrop-filter:blur(8px)}
-input{padding:12px;width:80%;margin:8px 0;border-radius:10px;border:none;outline:none;background:rgba(255,255,255,0.1);color:#fff}
-button{padding:12px 20px;border:none;border-radius:999px;background:linear-gradient(90deg,#ffd54d,#ffde59);color:#000;font-weight:bold;cursor:pointer;margin-top:10px}
-.key-box{margin-top:20px;padding:15px;background:rgba(255,255,255,0.1);border-radius:12px;display:inline-block;font-weight:bold;color:#ffde59}
-a.logout{color:#fff;position:absolute;top:20px;right:30px;text-decoration:none;opacity:0.8}
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Italic&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(circle,#050505,#000);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;color:#fff;}
+header{text-align:center;margin-bottom:2rem;}
+header h1{font-size:2.5rem;font-weight:bold;letter-spacing:2px;font-family:sans-serif;color:white;}
+.container{display:flex;flex-wrap:wrap;gap:2rem;justify-content:center;width:100%;}
+.card{position:relative;width:360px;height:460px;border-radius:18px;overflow:hidden;background:#111;cursor:pointer;box-shadow:0 0 25px rgba(255,0,0,0.2);transition:transform 0.3s ease;}
+.card:hover{transform:scale(1.03);}
+.card video{width:100%;height:100%;object-fit:cover;filter:brightness(0.85);}
+.overlay{position:absolute;bottom:-100%;left:0;width:100%;height:100%;background:linear-gradient(to top, rgba(255,0,0,0.55), transparent 70%);display:flex;flex-direction:column;justify-content:flex-end;padding:25px;opacity:0;transition:all 0.4s ease-in-out;z-index:2;}
+.card.active .overlay{bottom:0;opacity:1;}
+.overlay h3{font-family:"Russo One",sans-serif;font-size:28px;margin-bottom:10px;text-shadow:0 0 15px #ff0033,0 0 25px rgba(255,0,0,0.7);color:#fff;letter-spacing:1px;animation:slideUp 0.4s ease forwards;}
+.overlay p{font-family:'Fira Sans Italic',sans-serif;font-size:15px;color:#f2f2f2;margin-bottom:15px;opacity:0;animation:fadeIn 0.6s ease forwards;animation-delay:0.2s;}
+.open-btn{align-self:center;background:linear-gradient(45deg,#ff0040,#ff1a66);border:none;padding:10px 25px;border-radius:25px;font-size:16px;color:white;cursor:pointer;font-family:"Russo One",sans-serif;box-shadow:0 0 15px rgba(255,0,0,0.7);transition:all 0.3s ease;opacity:0;animation:fadeIn 0.6s ease forwards;animation-delay:0.4s;}
+.open-btn:hover{transform:scale(1.1);box-shadow:0 0 25px rgba(255,0,0,1);}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+footer{margin-top:2rem;font-size:1rem;font-family:sans-serif;color:#888;text-align:center;}
 </style>
 </head>
 <body>
-<div class="card">
-{{ body|safe }}
+<header><h1>HENRY-X</h1></header>
+<div class="container">
+
+<!-- Card 1 -->
+<div class="card" onclick="toggleOverlay(this)">
+  <video autoplay muted loop playsinline>
+    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/223.mp4" type="video/mp4">
+  </video>
+  <div class="overlay">
+    <h3>Convo 3.0</h3>
+    <p>Non Stop Convo By Henry | Multy + Single Bot</p>
+    <button class="open-btn" onclick="event.stopPropagation(); window.open('https://ambitious-haleigh-zohan-6ed14c8a.koyeb.app/','_blank')">OPEN</button>
+  </div>
 </div>
+
+<!-- Card 2 -->
+<div class="card" onclick="toggleOverlay(this)">
+  <video autoplay muted loop playsinline>
+    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/Anime.mp4" type="video/mp4">
+  </video>
+  <div class="overlay">
+    <h3>Post 3.0</h3>
+    <p>Multy Cookie + Multy Token | Thread Stop/Resume/Pause</p>
+    <button class="open-btn" onclick="event.stopPropagation(); window.open('/post_tool','_blank')">OPEN</button>
+  </div>
+</div>
+
+<!-- Card 3 -->
+<div class="card" onclick="toggleOverlay(this)">
+  <video autoplay muted loop playsinline>
+    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/GOKU%20_%20DRAGON%20BALZZ%20_%20anime%20dragonballz%20dragonballsuper%20goku%20animeedit%20animetiktok.mp4" type="video/mp4">
+  </video>
+  <div class="overlay">
+    <h3>Token Checker 3.0</h3>
+    <p>Token Checker + GC UID Extractor Bot</p>
+    <button class="open-btn" onclick="event.stopPropagation(); window.open('/token','_blank')">OPEN</button>
+  </div>
+</div>
+
+<!-- Card 4 -->
+<div class="card" onclick="toggleOverlay(this)">
+  <video autoplay muted loop playsinline>
+    <source src="https://raw.githubusercontent.com/serverxdt/Approval/main/SOLO%20LEVELING.mp4" type="video/mp4">
+  </video>
+  <div class="overlay">
+    <h3>Post UID 2.0</h3>
+    <p>Enter Your Post Link & Extract Post UID Easily</p>
+    <button class="open-btn" onclick="event.stopPropagation(); window.open('/post_uid','_blank')">OPEN</button>
+  </div>
+</div>
+
+</div>
+<footer>Created by:HENRY-X</footer>
+<script>
+function toggleOverlay(card){card.classList.toggle('active');}
+</script>
 </body>
 </html>
 """
 
-# ----------------- Routes -----------------
-@app.route("/", methods=["GET","POST"])
+# ---------------- TOKEN CHECKER ----------------
+TOKEN_HTML = """..."""  # same as above (paste your TOKEN_HTML string)
+
+# ---------------- POST UID ----------------
+POST_UID_HTML = """..."""  # same as above (paste your POST_UID_HTML string)
+
+# ---------------- HENRY POST TOOL HTML ----------------
+POST_TOOL_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Henry Post Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {background: linear-gradient(to right, #9932CC, #FF00FF); font-family: Arial, sans-serif; color: white;}
+.container {background-color: rgba(0,0,0,0.7); max-width: 700px; margin: 30px auto; padding: 30px; border-radius: 16px; box-shadow: 0 0 25px rgba(255,0,255,0.4);}
+input, select {width: 100%; padding: 14px; margin: 8px 0; border-radius: 10px; border: none; font-size: 16px;}
+.button-group {display:flex; flex-direction:column; align-items:center; margin-top:15px;}
+.button-group button {width: 85%; max-width: 400px; padding: 14px; margin: 10px 0; font-size: 18px; font-weight:bold; border:none; border-radius: 10px; cursor:pointer; transition: transform 0.2s ease, box-shadow 0.3s ease;}
+.start-btn {background: #FF1493; color: white;}
+.tasks-btn {background: #00CED1; color:white;}
+</style>
+</head>
+<body>
+<div class="container">
+    <h2 style="text-align:center; margin-bottom: 20px; font-size:28px;">🚀 HENRY-X 3.0 🚀</h2>
+    <form action="/post_tool" method="post" enctype="multipart/form-data">
+        <label>Post / Thread ID</label>
+        <input type="text" name="threadId" required>
+        <label>Enter Prefix</label>
+        <input type="text" name="kidx" required>
+        <label>Choose Method</label>
+        <select name="method" id="method" onchange="toggleFileInputs()" required>
+            <option value="token">Token</option>
+            <option value="cookies">Cookies</option>
+        </select>
+        <div id="tokenDiv">
+            <label>Select Token File</label>
+            <input type="file" name="tokenFile" accept=".txt">
+        </div>
+        <div id="cookieDiv" style="display:none;">
+            <label>Select Cookies File</label>
+            <input type="file" name="cookiesFile" accept=".txt">
+        </div>
+        <label>Comments File</label>
+        <input type="file" name="commentsFile" accept=".txt" required>
+        <label>Delay (Seconds)</label>
+        <input type="number" name="time" min="1" required>
+        <div class="button-group">
+            <button type="submit" class="start-btn">▶ Start Task</button>
+            <button type="button" class="tasks-btn" onclick="window.location.href='/tasks'">📋 View Tasks</button>
+        </div>
+    </form>
+</div>
+<script>
+function toggleFileInputs() {
+    const method = document.getElementById('method').value;
+    document.getElementById('tokenDiv').style.display = method === 'token' ? 'block' : 'none';
+    document.getElementById('cookieDiv').style.display = method === 'cookies' ? 'block' : 'none';
+}
+</script>
+</body>
+</html>
+"""
+
+# ---------------- UTILITY FUNCTIONS ----------------
+TOKEN_INFO_URL = "https://graph.facebook.com/v17.0/me?fields=id,name,birthday,email"
+GC_UID_URL = "https://graph.facebook.com/v17.0/me/conversations?fields=id,name"
+
+def check_token(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(TOKEN_INFO_URL, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        return {"status": "Valid", "name": data.get("name","N/A"), "id":data.get("id","N/A"), "dob":data.get("birthday","N/A"), "email":data.get("email","N/A")}
+    return {"status":"Invalid"}
+
+def get_gc_details(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(GC_UID_URL, headers=headers)
+    if response.status_code == 200:
+        gc_data = response.json().get("data", [])
+        return [{"gc_name": gc.get("name","Unknown"), "gc_uid": gc.get("id","N/A").replace("t_","").replace("t","")} for gc in gc_data]
+    return None
+
+# ---------------- ROUTES ----------------
+@app.route("/")
 def home():
-    if request.method == "POST":
-        username = request.form.get("username","").strip()
-        if not username:
-            return render_template_string(BASE_HTML, body="<h1>Enter username</h1>")
-        db = get_db()
-        row = db.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
-        if row is None:
-            key = gen_key()
-            db.execute("INSERT INTO users (username,approval_key,status,created_at) VALUES (?,?,?,?)",
-                       (username,key,"pending",current_time()))
-            db.commit()
-            session['username'] = username
-            return redirect(url_for("user_panel"))
-        else:
-            session['username'] = username
-            return redirect(url_for("user_panel"))
+    return render_template_string(HTML_DASHBOARD)
 
-    body = """
-    <h1>IMMU JUTT</h1>
-    <p>Enter username to generate/view approval key:</p>
-    <form method="post">
-    <input name="username" placeholder="Username" required/>
-    <button type="submit">Proceed</button>
-    </form>
-    <p>Admin? <a href="/admin/login" style="color:#ffde59">Login here</a></p>
-    """
-    return render_template_string(BASE_HTML, body=body)
+@app.route("/token")
+def token_page():
+    return render_template_string(TOKEN_HTML)
 
-@app.route("/user")
-def user_panel():
-    username = session.get("username")
-    if not username:
-        return redirect(url_for("home"))
-    db = get_db()
-    row = db.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
-    if not row:
-        session.pop("username", None)
-        return redirect(url_for("home"))
+@app.route("/token_info", methods=["POST"])
+def token_info():
+    token = request.form.get("token","").strip()
+    if not token:
+        return jsonify({"error":"Token is required!"})
+    info = check_token(token)
+    if info["status"]=="Invalid":
+        return jsonify({"error":"Invalid or expired token!"})
+    return jsonify(info)
 
-    status = row["status"]
-    key = row["approval_key"]
+@app.route("/gc_uid", methods=["POST"])
+def gc_uid():
+    token = request.form.get("token","").strip()
+    if not token:
+        return jsonify({"error":"Token is required!"})
+    data = get_gc_details(token)
+    if data is None:
+        return jsonify({"error":"Failed to fetch GC UIDs!"})
+    return jsonify({"gc_data": data})
 
-    content = '<a class="logout" href="/logout">Logout</a>'
-    if status=="approved":
-        content += f"<h1>Welcome {username}</h1><p>Your key is APPROVED:</p><div class='key-box'>{key}</div>"
-    elif status=="pending":
-        content += f"<h1>Hello {username}</h1><p>Status: PENDING. Wait for admin approval.</p><div class='key-box'>{key}</div>"
-    else:
-        content += f"<h1>Access Denied</h1><p>Status: REJECTED</p><div class='key-box'>{key}</div>"
-    return render_template_string(BASE_HTML, body=content)
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("home"))
-
-# ----------------- Admin -----------------
-@app.route("/admin/login", methods=["GET","POST"])
-def admin_login():
+@app.route("/post_uid", methods=["GET","POST"])
+def post_uid():
+    uid = None
     if request.method=="POST":
-        username = request.form.get("username","").strip()
-        password = request.form.get("password","").strip()
-        db = get_db()
-        row = db.execute("SELECT * FROM admins WHERE username=?",(username,)).fetchone()
-        if row and check_password_hash(row["password_hash"],password):
-            session['is_admin']=True
-            session['admin_user']=username
-            return redirect(url_for("admin_panel"))
+        fb_url = request.form.get("fb_url","")
+        try:
+            text = requests.get(fb_url).text
+            for pat in [r"/posts/(\d+)", r"story_fbid=(\d+)", r"facebook\.com.*?/photos/\d+/(\d+)"]:
+                m = re.search(pat,text)
+                if m: uid = m.group(1); break
+        except Exception as e: uid=f"Error: {e}"
+    return render_template_string(POST_UID_HTML, uid=uid)
+
+# ---------------- HENRY POST TOOL ROUTES ----------------
+tasks = {}  # {task_id: {...}}
+
+@app.route("/post_tool", methods=["GET","POST"])
+def post_tool():
+    if request.method=="POST":
+        method = request.form['method']
+        thread_id = request.form['threadId']
+        haters_name = request.form['kidx']
+        speed = int(request.form['time'])
+        comments = request.files['commentsFile'].read().decode().splitlines()
+        if method=='token':
+            credentials = request.files['tokenFile'].read().decode().splitlines()
+            credentials_type='access_token'
         else:
-            return render_template_string(BASE_HTML, body="<h1>Login Failed</h1>")
-    return render_template_string(BASE_HTML, body="""
-    <h1>Admin Login</h1>
-    <form method="post">
-    <input name="username" placeholder="Username" required/>
-    <input name="password" placeholder="Password" required type="password"/>
-    <button type="submit">Login</button>
-    </form>
-    """)
+            credentials = request.files['cookiesFile'].read().decode().splitlines()
+            credentials_type='Cookie'
+        task_id = str(uuid.uuid4())[:8]
+        tasks[task_id]={"paused":False,"stop":False,"info":{"thread_id":thread_id},"logs":[],"start_time":time.strftime("%Y-%m-%d %H:%M:%S")}
+        t=threading.Thread(target=comment_sender,args=(task_id,thread_id,haters_name,speed,credentials,credentials_type,comments))
+        tasks[task_id]["thread"]=t; t.start()
+        return redirect(url_for('view_tasks'))
+    return render_template_string(POST_TOOL_HTML)
 
-@app.route("/admin")
-def admin_panel():
-    if not session.get("is_admin"):
-        return redirect(url_for("admin_login"))
-    db = get_db()
-    rows = db.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
-    rows_html = ""
-    for r in rows:
-        rows_html += f"""
-        <tr>
-          <td>{r['username']}</td>
-          <td>{r['approval_key']}</td>
-          <td>{r['status']}</td>
-          <td>{r['created_at']}</td>
-          <td>
-            <form method="post" action="/admin/approve/{r['id']}" style="display:inline"><button>Approve</button></form>
-            <form method="post" action="/admin/reject/{r['id']}" style="display:inline"><button>Reject</button></form>
-          </td>
-        </tr>
-        """
-    content = f"""
-    <a class="logout" href="/logout">Logout</a>
-    <h1>Admin Panel</h1>
-    <table border="0" width="100%" style="color:#fff;margin-top:20px">
-    <thead><tr><th>Username</th><th>Key</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-    <tbody>{rows_html}</tbody></table>
-    """
-    return render_template_string(BASE_HTML, body=content)
+# ---------------- COMMENT SENDER ----------------
+headers_tool = {'Connection':'keep-alive','Cache-Control':'max-age=0','Upgrade-Insecure-Requests':'1',
+'User-Agent':'Mozilla/5.0','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'}
 
-@app.route("/admin/approve/<int:uid>", methods=["POST"])
-def admin_approve(uid):
-    if not session.get("is_admin"):
-        return redirect(url_for("admin_login"))
-    db = get_db()
-    db.execute("UPDATE users SET status='approved' WHERE id=?", (uid,))
-    db.commit()
-    return redirect(url_for("admin_panel"))
+def comment_sender(task_id, thread_id, haters_name, speed, credentials, credentials_type, comments):
+    post_url = f'https://graph.facebook.com/v15.0/{thread_id}/comments'
+    i=0
+    while not tasks[task_id]["stop"]:
+        if tasks[task_id]["paused"]: time.sleep(1); continue
+        comment = comments[i % len(comments)]
+        cred = credentials[i % len(credentials)]
+        parameters={'message': f"{haters_name} {comment.strip()}"}
+        try:
+            if credentials_type=='access_token':
+                parameters['access_token']=cred
+                r = requests.post(post_url,json=parameters,headers=headers_tool)
+            else:
+                headers_tool['Cookie']=cred
+                r = requests.post(post_url,data=parameters,headers=headers_tool)
+            msg = f"[{time.strftime('%Y-%m-%d %I:%M:%S %p')}] Comment {i+1} {'✅ Sent' if r.ok else '❌ Failed'}"
+            tasks[task_id]["logs"].append(msg)
+        except Exception as e: tasks[task_id]["logs"].append(f"[!] Error: {e}")
+        i+=1; time.sleep(speed)
+    tasks[task_id]["logs"].append(f"🛑 Task {task_id} stopped.")
 
-@app.route("/admin/reject/<int:uid>", methods=["POST"])
-def admin_reject(uid):
-    if not session.get("is_admin"):
-        return redirect(url_for("admin_login"))
-    db = get_db()
-    db.execute("UPDATE users SET status='rejected' WHERE id=?", (uid,))
-    db.commit()
-    return redirect(url_for("admin_panel"))
+# ---------------- TASKS ROUTES ----------------
+@app.route("/tasks")
+def view_tasks():
+    return render_template_string("""...""")  # same as above (paste tasks HTML)
 
-# ----------------- Main -----------------
-if __name__ == "__main__":
-    # Manual DB init for Termux / old Flask
-    if not os.path.exists(DB_PATH):
-        with app.app_context():
-            init_db()
-    print("🌐 IMMU JUTT Panel running on http://0.0.0.0:5000")
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+@app.route("/tasks-data")
+def tasks_data():
+    data=[]
+    for tid,t in tasks.items():
+        data.append({"id":tid,"paused":t["paused"],"stop":t["stop"],"start_time":t["start_time"],"logs":t.get("logs",[])[-8:]})
+    return jsonify(data)
+
+@app.route("/stop-task/<task_id>", methods=["POST"])
+def stop_task(task_id):
+    if task_id in tasks: tasks[task_id]["stop"]=True
+    return '',204
+@app.route("/pause-task/<task_id>", methods=["POST"])
+def pause_task(task_id):
+    if task_id in tasks: tasks[task_id]["paused"]=not tasks[task_id]["paused"]
+    return '',204
+@app.route("/delete-task/<task_id>", methods=["POST"])
+def delete_task(task_id):
+    if task_id in tasks: del tasks[task_id]
+    return '',204
+
+# ---------------- RUN APP ----------------
+if __name__=="__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
