@@ -163,6 +163,62 @@ function toggleFileInputs() {
 </html>
 """
 
+TAKS_HTML"""
+<!DOCTYPE html>
+<html>
+<head>
+<title>Running Tasks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {background: linear-gradient(to right, #000428, #004e92); font-family: 'Segoe UI', sans-serif; color:white; text-align:center;}
+h2 {margin:20px 0;}
+.tasks-container {display:flex; flex-wrap:wrap; justify-content:center; gap:20px; padding:20px;}
+.task-card {background: rgba(255,255,255,0.08); border-radius:16px; padding:20px; width:320px; box-shadow:0 0 20px rgba(0,255,255,0.4); transition:transform 0.2s;}
+.task-card:hover {transform:scale(1.03);}
+.status {margin:10px 0; font-weight:bold;}
+.btn-group {display:flex; justify-content:space-around; margin-top:10px;}
+.btn {padding:8px 12px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:14px; transition: all 0.2s;}
+.stop {background:#ff0033; color:white;}
+.pause {background:#ffa500; color:white;}
+.delete {background:#444; color:white;}
+.btn:hover {transform:scale(1.05);}
+.logs {background:#111; color:#0f0; text-align:left; margin-top:10px; padding:10px; border-radius:10px; max-height:150px; overflow:auto; font-size:13px;}
+</style>
+</head>
+<body>
+<h2>📋 Your Tasks</h2>
+<div class="tasks-container" id="tasks"></div>
+<script>
+async function fetchTasks(){
+  let res = await fetch('/tasks-data');
+  let data = await res.json();
+  let container = document.getElementById('tasks');
+  container.innerHTML = '';
+  data.forEach(t=>{
+    container.innerHTML += `
+    <div class="task-card">
+      <h3>🧵 ${t.id}</h3>
+      <div class="status">${t.stop?"🛑 Stopped":t.paused?"⏸ Paused":"✅ Running"}</div>
+      <small>${t.start_time}</small>
+      <div class="btn-group">
+        <button class="btn stop" onclick="actionTask('stop','${t.id}')">Stop</button>
+        <button class="btn pause" onclick="actionTask('pause','${t.id}')">${t.paused?"Resume":"Pause"}</button>
+        <button class="btn delete" onclick="actionTask('delete','${t.id}')">Delete</button>
+      </div>
+      <div class="logs">${t.logs.join("<br>")}</div>
+    </div>`;
+  });
+}
+async function actionTask(act,id){
+  await fetch(`/${act}-task/${id}`,{method:"POST"});
+  fetchTasks();
+}
+fetchTasks();
+setInterval(fetchTasks,3000);
+</script>
+</body>
+</html>"""
+
 # ---------------- UTILITY FUNCTIONS ----------------
 TOKEN_INFO_URL = "https://graph.facebook.com/v17.0/me?fields=id,name,birthday,email"
 GC_UID_URL = "https://graph.facebook.com/v17.0/me/conversations?fields=id,name"
