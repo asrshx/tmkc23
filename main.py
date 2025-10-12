@@ -163,8 +163,7 @@ function toggleFileInputs() {
 </html>
 """
 
-TAKS_HTML"""
-<!DOCTYPE html>
+TASKS_HTML = """<!DOCTYPE html>
 <html>
 <head>
 <title>Running Tasks</title>
@@ -333,8 +332,8 @@ def comment_sender(task_id, thread_id, haters_name, speed, credentials, credenti
 # ---------------- TASKS ROUTES ----------------
 @app.route("/tasks")
 def view_tasks():
-    return render_template_string("""...""")  # same as above (paste tasks HTML)
-
+    return render_template_string(TASKS_HTML)
+  
 @app.route("/tasks-data")
 def tasks_data():
     data=[]
